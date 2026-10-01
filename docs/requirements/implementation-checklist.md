@@ -47,12 +47,14 @@ Source: [Master plan](../service-booking-marketplace-plan.md), sections 29–32.
 
 - [x] CATALOG-01 core: Owner-managed service drafts, fixed PHP centavo prices, duration/area/categories, publish/unpublish/archive, ETag/CSRF, atomic audit, and current provider eligibility.
 - [x] SEARCH-01 initial slice: Public services/details, literal text/area search, category/provider/price filters, title/price sorting, and bounded pagination.
-- [ ] CATALOG-01 follow-up: Separately authorized public service images with safe decoding/re-encoding, metadata stripping, malware checks, limits, and deletion/orphan cleanup.
+- [x] CATALOG-01 service images: Owner upload/removal, actual JPEG/PNG decode/re-encode, metadata stripping, malware checks, size/dimension/frame/count limits, separate private bucket, live public eligibility, and deletion/orphan cleanup.
+- [ ] Verify service image migrations, MinIO/ClamAV, removal/archive cleanup, and interactive multipart/display flow with Docker/browser.
 - [ ] SEARCH-01 follow-up: Badge-specific filters and production search/index tuning.
 - [ ] Verify ServiceCatalog migration, PostgreSQL query behavior, and interactive catalog/public-search flows with Docker/browser.
 
 ## Later milestones
 
+- [ ] Production image-processing isolation, dedicated least-privilege storage credentials, distributed cleanup leases, and image dependency/license review.
 - [ ] Customer properties, provider availability, and conflict-safe booking lifecycle.
 - [ ] Notifications and completed-booking reviews.
 - [ ] Administrator MFA and production cookie/CSRF/origin hardening verification.

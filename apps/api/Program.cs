@@ -26,6 +26,9 @@ builder.Services.AddOptions<EvidenceOptions>().Bind(builder.Configuration.GetSec
         && o.IndividualRequired.Concat(o.BusinessRequired).Append(o.TradeEvidence).All(EvidenceOptions.EvidenceTypes.Contains)
         && o.TradeCategoryIds.All(id => Guid.TryParse(id, out _)), "Invalid demo evidence policy.").ValidateOnStart();
 builder.Services.AddScoped<IEvidenceStore, S3EvidenceStore>();
+builder.Services.AddScoped<IServiceImageStore, S3ServiceImageStore>();
+builder.Services.AddSingleton<ServiceImageProcessor>();
+if (builder.Configuration.GetValue<bool>("ServiceImages:CleanupEnabled")) builder.Services.AddHostedService<ServiceImageCleanupWorker>();
 builder.Services.AddScoped<IEvidenceScanner, ClamEvidenceScanner>();
 if (builder.Configuration.GetValue<bool>("Evidence:RetentionEnabled")) builder.Services.AddHostedService<EvidenceRetentionWorker>();
 builder.Services.AddRateLimiter(o => o.AddPolicy("evidence", c => RateLimitPartition.GetFixedWindowLimiter(c.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous", _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 })));

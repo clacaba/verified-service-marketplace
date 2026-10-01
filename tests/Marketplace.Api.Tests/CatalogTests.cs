@@ -10,7 +10,7 @@ public sealed partial class VerificationTests
 {
     private static readonly Guid Cleaning = Guid.Parse("10000000-0000-0000-0000-000000000001");
     private static object Offer(string title = "Demo cleaning", long priceMinor = 25000, Guid? categoryId = null, string currency = "PHP", int durationMinutes = 60, string description = "Fictional cleaning service.", string area = "Demo area") =>
-        new {title, description, categoryId = categoryId ?? Cleaning, priceMinor, currency, durationMinutes, serviceArea = area};
+        new { title, description, categoryId = categoryId ?? Cleaning, priceMinor, currency, durationMinutes, serviceArea = area };
     private static async Task<(Guid Id, string Etag)> CreateOffer(Browser owner, Guid org, object? input = null)
     {
         var response = await owner.Send($"organizations/{org}/services", body: JsonContent.Create(input ?? Offer()));
@@ -18,7 +18,7 @@ public sealed partial class VerificationTests
         return ((await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid(), response.Headers.ETag!.ToString());
     }
     private static async Task<HttpResponseMessage> OfferPublication(Browser owner, Guid org, Guid service, string etag, bool published = true) =>
-        await owner.Send($"organizations/{org}/services/{service}/publication", body: JsonContent.Create(new {published}), etag: etag);
+        await owner.Send($"organizations/{org}/services/{service}/publication", body: JsonContent.Create(new { published }), etag: etag);
     [Fact]
     public async Task CatalogDraftsPublishEditUnpublishAndArchiveWithExactVersions()
     {
@@ -33,7 +33,7 @@ public sealed partial class VerificationTests
         var publicResponse = await anonymous.GetAsync($"/api/v1/services/{id}"); Assert.Equal(HttpStatusCode.OK, publicResponse.StatusCode);
         Assert.Equal("no-store", publicResponse.Headers.CacheControl!.ToString());
         var projection = await publicResponse.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(new[] {"category", "description", "disclosure", "durationMinutes", "id", "priceMinor", "provider", "serviceArea", "title", "currency"}.Order(), projection.EnumerateObject().Select(x => x.Name).Order());
+        Assert.Equal(new[] { "category", "description", "disclosure", "durationMinutes", "id", "priceMinor", "provider", "serviceArea", "title", "currency", "images" }.Order(), projection.EnumerateObject().Select(x => x.Name).Order());
         Assert.Equal(25000, projection.GetProperty("priceMinor").GetInt64());
         Assert.DoesNotContain("organizationId", projection.ToString()); Assert.DoesNotContain("version", projection.ToString());
         Assert.Equal(HttpStatusCode.PreconditionFailed, (await OfferPublication(owner, org, id, etag, false)).StatusCode);
@@ -62,10 +62,10 @@ public sealed partial class VerificationTests
         var (id, etag) = await CreateOffer(owner, org); var published = await OfferPublication(owner, org, id, etag);
         await factory.Update(async db =>
         {
-            if(change == "expired") (await db.VerificationChecks.SingleAsync()).ExpiresAt = DateTime.UtcNow.AddSeconds(-1);
-            if(change == "revoked") (await db.VerificationChecks.SingleAsync()).RevokedAt = DateTime.UtcNow;
-            if(change == "unpublished") (await db.ProviderProfiles.SingleAsync()).PublishedAt = null;
-            if(change == "category") (await db.ServiceCategories.SingleAsync(x => x.Id == Cleaning)).Active = false;
+            if (change == "expired") (await db.VerificationChecks.SingleAsync()).ExpiresAt = DateTime.UtcNow.AddSeconds(-1);
+            if (change == "revoked") (await db.VerificationChecks.SingleAsync()).RevokedAt = DateTime.UtcNow;
+            if (change == "unpublished") (await db.ProviderProfiles.SingleAsync()).PublishedAt = null;
+            if (change == "category") (await db.ServiceCategories.SingleAsync(x => x.Id == Cleaning)).Active = false;
         });
         Assert.Equal(HttpStatusCode.NotFound, (await anonymous.GetAsync($"/api/v1/services/{id}")).StatusCode);
         var list = await anonymous.GetFromJsonAsync<JsonElement>("/api/v1/services");
@@ -84,7 +84,7 @@ public sealed partial class VerificationTests
         Assert.Equal(HttpStatusCode.PreconditionFailed, (await owner.Send(route, HttpMethod.Put, JsonContent.Create(Offer()), "*")).StatusCode);
         await staff.Login("staff@example.test");
         Assert.Equal(HttpStatusCode.NotFound, (await staffClient.GetAsync("/api/v1/" + route)).StatusCode);
-        await factory.Update(async db => db.OrganizationMemberships.Add(new Marketplace.Api.Organizations.OrganizationMembership {OrganizationId = org, UserId = (await db.Users.SingleAsync(u => u.Email == "staff@example.test")).Id, Role = "Staff", Active = true}));
+        await factory.Update(async db => db.OrganizationMemberships.Add(new Marketplace.Api.Organizations.OrganizationMembership { OrganizationId = org, UserId = (await db.Users.SingleAsync(u => u.Email == "staff@example.test")).Id, Role = "Staff", Active = true }));
         Assert.Equal(HttpStatusCode.OK, (await staffClient.GetAsync("/api/v1/" + route)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await staff.Send($"organizations/{org}/services", body: JsonContent.Create(Offer()))).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await staff.Send(route, HttpMethod.Put, JsonContent.Create(Offer()), etag)).StatusCode);
@@ -92,7 +92,7 @@ public sealed partial class VerificationTests
         Assert.Equal(HttpStatusCode.Forbidden, (await staff.Send(route + "/archive", etag: etag)).StatusCode);
         await factory.Update(async db => (await db.OrganizationMemberships.SingleAsync(m => m.OrganizationId == org && m.Role == "Staff")).Active = false);
         Assert.Equal(HttpStatusCode.NotFound, (await staffClient.GetAsync("/api/v1/" + route)).StatusCode);
-        var another = await owner.Send("organizations", body: JsonContent.Create(new {name = "Another", providerType = "Individual"}));
+        var another = await owner.Send("organizations", body: JsonContent.Create(new { name = "Another", providerType = "Individual" }));
         var otherOrg = (await another.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
         Assert.Equal(HttpStatusCode.NotFound, (await ownerClient.GetAsync($"/api/v1/organizations/{otherOrg}/services/{id}")).StatusCode);
     }
@@ -104,7 +104,7 @@ public sealed partial class VerificationTests
             Offer(area: " "), Offer(priceMinor: 0), Offer(priceMinor: 100000001), Offer(currency: "USD"), Offer(durationMinutes: 14), Offer(durationMinutes: 16), Offer(durationMinutes: 1441),
             Offer(categoryId: Guid.Parse("10000000-0000-0000-0000-000000000002"))};
         foreach (var input in invalid) Assert.Equal(HttpStatusCode.BadRequest, (await owner.Send($"organizations/{org}/services", body: JsonContent.Create(input))).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await owner.Send($"organizations/{org}/services", body: JsonContent.Create(new {title = "Injected", status = "Published"}))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await owner.Send($"organizations/{org}/services", body: JsonContent.Create(new { title = "Injected", status = "Published" }))).StatusCode);
         await factory.Update(async db => Assert.Equal(0, await db.ServiceListings.CountAsync()));
     }
     [Fact]
@@ -122,7 +122,7 @@ public sealed partial class VerificationTests
         Assert.Equal(1, list.GetProperty("totalCount").GetInt32()); Assert.Equal(a, list.GetProperty("items")[0].GetProperty("id").GetGuid());
         list = await anonymous.GetFromJsonAsync<JsonElement>("/api/v1/services?q=%25"); Assert.Equal(0, list.GetProperty("totalCount").GetInt32());
         list = await anonymous.GetFromJsonAsync<JsonElement>("/api/v1/services?page=2&pageSize=1&sort=priceAsc"); Assert.Equal(a, list.GetProperty("items")[0].GetProperty("id").GetGuid());
-        foreach (var filter in new[] {"page=0", "pageSize=101", "page=100001", "minPriceMinor=-1", "minPriceMinor=400&maxPriceMinor=100", "sort=unknown", "categoryId=bad"})
+        foreach (var filter in new[] { "page=0", "pageSize=101", "page=100001", "minPriceMinor=-1", "minPriceMinor=400&maxPriceMinor=100", "sort=unknown", "categoryId=bad" })
             Assert.Equal(HttpStatusCode.BadRequest, (await anonymous.GetAsync("/api/v1/services?" + filter)).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await ownerClient.GetAsync($"/api/v1/organizations/{org}/services?status=Unknown")).StatusCode);
     }

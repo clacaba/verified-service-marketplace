@@ -63,7 +63,7 @@ All authentication POSTs, including anonymous registration, login, verification,
 
 `DecisionRequest`: `decision` (Approved/Rejected/AdditionalInformationRequired), `reason`, `checks` containing `type` and optional `expiresAt`. Approval requires all configured evidence/checks. Rejection and information requests require a reason of 1–2,000 characters. Demo simulation flags are server-controlled.
 
-`PublicProvider`: `id`, `displayName`, `providerType`, `biography`, `categories`, `serviceArea`, `badges`, and `disclosure`. Each badge exposes `type`, `label`, `expiresAt`, and `simulated`. Images are not implemented in this milestone. Exclude membership, private applications, documents, emails, and sensitive identifiers.
+`PublicProvider`: `id`, `displayName`, `providerType`, `biography`, `categories`, `serviceArea`, `badges`, and `disclosure`. Each badge exposes `type`, `label`, `expiresAt`, and `simulated`. Provider avatar images are not implemented in this milestone. Exclude membership, private applications, documents, emails, and sensitive identifiers.
 
 Implemented demo document policy: PDF/JPEG/PNG, 10 MiB per file, one file per request, at most 20 per application. Validate MIME against signatures/end markers and require a clean ClamAV scan before private storage. Format detection is not full structural parsing. Metadata uses `fileName`, `size`, `expiresAt`, and `scanStatus=Clean`; it never exposes object keys. Default draft/submitted file retention is 30/90 days; access grants expire in 60 seconds and are bound to the authenticated session. Required types depend on Individual/Business and Plumbing/Electrical categories; see [private verification evidence](../architecture/private-verification-evidence.md). Rules are fictional demo defaults. A submitted snapshot is locked; draft evidence may be removed. Corrected revisions now create fresh linked drafts and preserve earlier evidence/snapshots/decisions.
 
@@ -98,4 +98,8 @@ Website sessions remain cookies. Administrator MFA and identity-provider-managed
 
 ## Core service catalog (implemented)
 
-See [service catalog](../architecture/service-catalog.md) for authorized organization service drafts, exact ETags, publication/archive transitions, fixed PHP centavo prices, duration/category/area validation, public search filters/sorting/pagination, and public privacy projection. The matching catalog paths and schemas are included in this OpenAPI document. Images and booking are not implemented; CATALOG-01 and SEARCH-01 remain partial until their documented follow-ups are delivered.
+See [service catalog](../architecture/service-catalog.md) for authorized organization service drafts, exact ETags, publication/archive transitions, fixed PHP centavo prices, duration/category/area validation, public search filters/sorting/pagination, and public privacy projection. The matching catalog paths and schemas are included in this OpenAPI document. Safe service images are implemented; booking is not implemented and advanced SEARCH-01 follow-ups remain pending.
+
+## Safe service images (implemented)
+
+Service summaries include an images array containing processed PNG metadata and relative member-only/public URLs. Owner multipart uploads and removal require listing If-Match and CSRF; both demote the listing to Draft. Public content rechecks current eligibility; originals and private evidence are never served. See [safe service images](../architecture/service-images.md) for size/dimension/frame limits, scanning, separate bucket/production credentials, API details, cleanup, and validation. Provider avatar/imageId uploads remain deferred.

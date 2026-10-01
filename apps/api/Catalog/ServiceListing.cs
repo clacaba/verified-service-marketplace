@@ -2,6 +2,7 @@ namespace Marketplace.Api.Catalog;
 
 public sealed class ServiceListing
 {
+    public List<ServiceImage> Images { get; set; } = [];
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid OrganizationId { get; set; }
     public Guid CategoryId { get; set; }

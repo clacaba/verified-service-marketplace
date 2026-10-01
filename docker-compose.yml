@@ -43,6 +43,8 @@ services:
       Storage__AccessKey: ${MINIO_ROOT_USER}
       Storage__SecretKey: ${MINIO_ROOT_PASSWORD}
       Storage__Bucket: verification-evidence
+      ServiceImages__Bucket: service-images
+      ServiceImages__CleanupEnabled: "true"
       Scanner__Host: scanner
       Scanner__Port: "3310"
       Evidence__RetentionEnabled: "true"

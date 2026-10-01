@@ -81,4 +81,8 @@ Public provider profiles are available at `/providers` after an Owner explicitly
 
 
 
-Core service catalog management is available at `/catalog?organizationId={id}`, with public discovery at `/services`. Owners manage drafts/publication/archiving; Staff read only. Current provider eligibility gates every public offer. PHP fixed prices, filters, and paging are implemented; images and booking remain planned. See [service catalog](docs/architecture/service-catalog.md).
+Core service catalog management is available at `/catalog?organizationId={id}`, with public discovery at `/services`. Owners manage drafts/publication/archiving; Staff read only. Current provider eligibility gates every public offer. PHP fixed prices, filters, and paging are implemented; safe service images are now implemented and booking remains planned. See [service catalog](docs/architecture/service-catalog.md).
+
+
+
+Service images support Owner-authorized JPEG/PNG uploads, malware scanning, metadata-free PNG processing, private previews, eligibility-gated public display, and durable removal/orphan cleanup. See [safe service images](docs/architecture/service-images.md). Production credentials/licensing/resource isolation and the real Docker image flow still need validation.

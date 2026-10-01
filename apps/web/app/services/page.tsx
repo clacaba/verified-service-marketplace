@@ -32,6 +32,7 @@ export default async function Services({searchParams}: {searchParams: Promise<Re
         {error && <p role="alert">{error}</p>}
         {data && <><p>{data.totalCount} matching services</p>{data.items.length === 0 && <p>No published eligible services match these filters.</p>}
         <section className="categories" aria-label="Services">{data.items.map(s => <article key={s.id}>
+            {s.images[0] && <img src={s.images[0].url} alt={s.images[0].altText} width={s.images[0].width} height={s.images[0].height} loading="lazy" style={{maxWidth: "100%", height: "auto"}}/>}
             <h2><Link href={"/services/" + s.id} prefetch={false}>{s.title}</Link></h2><p>{s.provider.displayName} · {s.category.name}</p>
             <p>{price(s.priceMinor)} · {s.durationMinutes} minutes · {s.serviceArea}</p>
         </article>)}</section><nav aria-label="Service pages">{page > 1 && <Link href={pageLink(page - 1)} prefetch={false}>Previous</Link>}{" "}{page * 12 < data.totalCount && <Link href={pageLink(page + 1)} prefetch={false}>Next</Link>}</nav></>}

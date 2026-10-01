@@ -20,10 +20,17 @@ public static class CatalogEndpoints
             && eligibleProviders.Any(p => p.OrganizationId == s.OrganizationId && p.PublishedAt != null && p.Categories.Any(c => c.CategoryId == s.CategoryId)));
     }
     private static string Tag(Guid value) => "\"" + value.ToString("D") + "\"";
-    private static object PrivateSummary(ServiceListing s) => new { s.Id, s.OrganizationId, s.Title, s.Description, s.CategoryId, s.PriceMinor, s.Currency, s.DurationMinutes, s.ServiceArea, s.Status, s.Version, s.CreatedAt, s.UpdatedAt };
+    private static object PrivateSummary(ServiceListing s) => new { s.Id, s.OrganizationId, s.Title, s.Description, s.CategoryId, s.PriceMinor, s.Currency, s.DurationMinutes, s.ServiceArea, s.Status, s.Version, s.CreatedAt, s.UpdatedAt, images = s.Images.Where(i => i.DeletedAt == null).OrderBy(i => i.CreatedAt).ThenBy(i => i.Id).Select(i => ServiceImageEndpoints.Summary(i, s, false)) };
     private static object PublicSummary(ServiceListing s, ProviderProfile p, ServiceCategory category) => new
     {
-        s.Id, s.Title, s.Description, s.PriceMinor, s.Currency, s.DurationMinutes, s.ServiceArea,
+        s.Id,
+        s.Title,
+        s.Description,
+        s.PriceMinor,
+        s.Currency,
+        s.DurationMinutes,
+        s.ServiceArea,
+        images = s.Images.Where(i => i.DeletedAt == null).OrderBy(i => i.CreatedAt).ThenBy(i => i.Id).Select(i => ServiceImageEndpoints.Summary(i, s, true)),
         category = new { category.Id, category.Name },
         provider = new { p.Id, p.DisplayName },
         disclosure = "Portfolio demo: fictional services and simulated provider checks. Booking is not available yet."
@@ -47,13 +54,13 @@ public static class CatalogEndpoints
         s.Title = input.Title.Trim(); s.Description = input.Description.Trim(); s.CategoryId = input.CategoryId;
         s.PriceMinor = input.PriceMinor; s.Currency = input.Currency; s.DurationMinutes = input.DurationMinutes; s.ServiceArea = input.ServiceArea.Trim();
     }
-    private static IResult? Precondition(ServiceListing s, HttpContext http)
+    internal static IResult? Precondition(ServiceListing s, HttpContext http)
     {
         var value = http.Request.Headers.IfMatch.ToString();
         if (string.IsNullOrWhiteSpace(value)) return Results.Problem(statusCode: 428, title: "If-Match is required.");
         return value != Tag(s.Version) ? Results.Problem(statusCode: 412, title: "This listing changed. Reload before continuing.") : null;
     }
-    private static async Task<IResult> Save(ServiceListing s, string action, HttpContext http, MarketplaceDbContext db, int status = 200)
+    internal static async Task<IResult> Save(ServiceListing s, string action, HttpContext http, MarketplaceDbContext db, int status = 200)
     {
         s.Version = Guid.NewGuid(); s.UpdatedAt = DateTime.UtcNow;
         db.OrganizationAuditEvents.Add(new OrganizationAuditEvent { OrganizationId = s.OrganizationId, ActorId = http.User.FindFirstValue(ClaimTypes.NameIdentifier)!, Action = action, ResourceId = s.Id.ToString() });
@@ -83,14 +90,14 @@ public static class CatalogEndpoints
         {
             var current = page ?? 1; var size = pageSize ?? 20;
             if (current < 1 || current > 100000 || size < 1 || size > 100 || (status != null && status is not ("Draft" or "Published" or "Archived"))) return Results.Problem(statusCode: 400, title: "Invalid pagination or status.");
-            var query = db.ServiceListings.AsNoTracking().Where(s => s.OrganizationId == organizationId);
+            var query = db.ServiceListings.AsNoTracking().Include(s => s.Images).Where(s => s.OrganizationId == organizationId);
             if (status != null) query = query.Where(s => s.Status == status);
             var rows = await query.OrderBy(s => s.Title).ThenBy(s => s.Id).Skip((current - 1) * size).Take(size).ToListAsync();
             return Results.Ok(new { items = rows.Select(PrivateSummary), page = current, pageSize = size, totalCount = await query.CountAsync() });
         });
         group.MapGet("/{serviceId:guid}", async (Guid organizationId, Guid serviceId, HttpContext http, MarketplaceDbContext db) =>
         {
-            var s = await db.ServiceListings.AsNoTracking().SingleOrDefaultAsync(s => s.Id == serviceId && s.OrganizationId == organizationId);
+            var s = await db.ServiceListings.AsNoTracking().Include(s => s.Images).SingleOrDefaultAsync(s => s.Id == serviceId && s.OrganizationId == organizationId);
             if (s == null) return Results.NotFound(); http.Response.Headers.ETag = Tag(s.Version); return Results.Ok(PrivateSummary(s));
         });
         group.MapPost("", async (Guid organizationId, ListingInput input, HttpContext http, MarketplaceDbContext db) =>
@@ -101,7 +108,7 @@ public static class CatalogEndpoints
         });
         group.MapPut("/{serviceId:guid}", async (Guid organizationId, Guid serviceId, ListingInput input, HttpContext http, MarketplaceDbContext db) =>
         {
-            var s = await db.ServiceListings.SingleOrDefaultAsync(s => s.Id == serviceId && s.OrganizationId == organizationId);
+            var s = await db.ServiceListings.Include(s => s.Images).SingleOrDefaultAsync(s => s.Id == serviceId && s.OrganizationId == organizationId);
             if (s == null) return Results.NotFound(); var error = Precondition(s, http); if (error != null) return error;
             if (s.Status == "Archived") return Results.Problem(statusCode: 409, title: "Archived listings cannot be edited.");
             var errors = await Validate(input, organizationId, db); if (errors.Count > 0) return Results.ValidationProblem(errors);
@@ -110,7 +117,7 @@ public static class CatalogEndpoints
         });
         group.MapPost("/{serviceId:guid}/publication", async (Guid organizationId, Guid serviceId, PublicationInput input, HttpContext http, MarketplaceDbContext db, IOptions<EvidenceOptions> policy) =>
         {
-            var s = await db.ServiceListings.SingleOrDefaultAsync(s => s.Id == serviceId && s.OrganizationId == organizationId);
+            var s = await db.ServiceListings.Include(s => s.Images).SingleOrDefaultAsync(s => s.Id == serviceId && s.OrganizationId == organizationId);
             if (s == null) return Results.NotFound(); var error = Precondition(s, http); if (error != null) return error;
             if (s.Status == "Archived") return Results.Problem(statusCode: 409, title: "Archived listings cannot be published.");
             if (input.Published && (!await db.ServiceCategories.AnyAsync(c => c.Id == s.CategoryId && c.Active)
@@ -121,11 +128,13 @@ public static class CatalogEndpoints
         });
         group.MapPost("/{serviceId:guid}/archive", async (Guid organizationId, Guid serviceId, HttpContext http, MarketplaceDbContext db) =>
         {
-            var s = await db.ServiceListings.SingleOrDefaultAsync(s => s.Id == serviceId && s.OrganizationId == organizationId);
+            var s = await db.ServiceListings.Include(s => s.Images).SingleOrDefaultAsync(s => s.Id == serviceId && s.OrganizationId == organizationId);
             if (s == null) return Results.NotFound(); var error = Precondition(s, http); if (error != null) return error;
             if (s.Status == "Archived") return Results.Problem(statusCode: 409, title: "This listing is already archived.");
+            foreach (var image in s.Images.Where(i => i.DeletedAt == null)) ServiceImageEndpoints.Retire(image, db);
             s.Status = "Archived"; return await Save(s, "service.archived", http, db);
         });
+        ServiceImageEndpoints.Map(group, app);
         app.MapGet("/api/v1/services", async (int? page, int? pageSize, string? q, Guid? categoryId, Guid? providerId, string? area, long? minPriceMinor, long? maxPriceMinor, string? sort, HttpContext http, MarketplaceDbContext db, IOptions<EvidenceOptions> policy) =>
         {
             http.Response.Headers.CacheControl = "no-store"; var current = page ?? 1; var size = pageSize ?? 20; sort ??= "title";
@@ -133,7 +142,7 @@ public static class CatalogEndpoints
                 || minPriceMinor < 0 || maxPriceMinor < 0 || minPriceMinor > 100000000 || maxPriceMinor > 100000000 || minPriceMinor > maxPriceMinor
                 || sort is not ("title" or "priceAsc" or "priceDesc"))
                 return Results.Problem(statusCode: 400, title: "Invalid search filters, sort, or pagination.");
-            var query = PublicQuery(db, policy.Value, DateTime.UtcNow);
+            var query = PublicQuery(db, policy.Value, DateTime.UtcNow).Include(s => s.Images).AsQueryable();
             if (!string.IsNullOrWhiteSpace(q)) { var term = q.Trim().ToLowerInvariant(); query = query.Where(s => s.Title.ToLower().Contains(term) || s.Description.ToLower().Contains(term)); }
             if (!string.IsNullOrWhiteSpace(area)) { var term = area.Trim().ToLowerInvariant(); query = query.Where(s => s.ServiceArea.ToLower().Contains(term)); }
             if (categoryId != null) query = query.Where(s => s.CategoryId == categoryId);
@@ -153,7 +162,7 @@ public static class CatalogEndpoints
         app.MapGet("/api/v1/services/{serviceId:guid}", async (Guid serviceId, HttpContext http, MarketplaceDbContext db, IOptions<EvidenceOptions> policy) =>
         {
             http.Response.Headers.CacheControl = "no-store";
-            var s = await PublicQuery(db, policy.Value, DateTime.UtcNow).SingleOrDefaultAsync(s => s.Id == serviceId);
+            var s = await PublicQuery(db, policy.Value, DateTime.UtcNow).Include(s => s.Images).SingleOrDefaultAsync(s => s.Id == serviceId);
             if (s == null) return Results.NotFound();
             var provider = await db.ProviderProfiles.AsNoTracking().SingleAsync(p => p.OrganizationId == s.OrganizationId);
             var category = await db.ServiceCategories.AsNoTracking().SingleAsync(c => c.Id == s.CategoryId);

@@ -1,6 +1,6 @@
 # Service listings and catalog management
 
-Status: Core CATALOG-01 text/pricing lifecycle and initial SEARCH-01 discovery implemented. Images, advanced search, and real Docker/PostgreSQL/browser validation remain pending.
+Status: CATALOG-01 text/pricing lifecycle and safe service images, plus initial SEARCH-01 discovery implemented. Advanced search and real Docker/PostgreSQL/browser validation remain pending.
 
 ## Product rules for this slice
 
@@ -12,7 +12,7 @@ Status: Core CATALOG-01 text/pricing lifecycle and initial SEARCH-01 discovery i
 - Provider approval alone is insufficient: its profile must be explicitly published and currently eligible before publishing an offer.
 - Public requests recheck eligibility, listing status, active category, and category membership. Expiry/revocation/unpublished profiles hide offers without a worker. Stored Published status is not a guarantee of current visibility.
 - Unpublishing/archiving remains available when verification expires. A later valid renewal may restore public visibility for unchanged Published offers. Booking must independently validate eligibility and snapshot price/details in its future milestone.
-- Images are NOT accepted. Unknown JSON properties, including external image URLs, are rejected. Public listing image upload/processing is a follow-up with a separate privacy path; private identity evidence must never become a public listing image.
+- Service images are uploaded through the separate Owner-authorized multipart workflow, not listing JSON. Unknown external image URLs/IDs are rejected. See [safe service images](service-images.md); private identity evidence must never become a public listing image.
 
 ## Try locally
 
@@ -53,4 +53,4 @@ Search uses database filtering/paging, not loading all offers into the browser. 
 
 All 63 backend tests pass, including create/read/update/publish/unpublish/archive, current provider requirements, membership deactivation/organization isolation, CSRF, exact ETags, validation, literal filters, sorting/paging, and public privacy projection. Frontend typecheck/build and proxy smoke tests pass for the new routes/pages against a mock backend. PostgreSQL migration/query execution and interactive browser acceptance remain pending: Docker CLI is installed, but the engine is not running and the repository has no local .env file yet.
 
-Next: separately authorized public service image upload/processing, then customer properties and provider availability before booking. Images require MIME/size/dimension limits, safe decoding/re-encoding and metadata stripping, malware checks, orphan/deletion cleanup, and public authorization independent of private verification evidence.
+Safe service image upload/processing is now delivered with MIME/size/dimension/frame limits, pixel re-encoding/metadata stripping, malware checks, separate private storage, live public eligibility, and durable cleanup. Next: customer properties and provider availability before booking.

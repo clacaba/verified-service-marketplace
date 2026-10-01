@@ -12,10 +12,19 @@ const organization = "10000000-0000-0000-0000-000000000001";
 const application = "20000000-0000-0000-0000-000000000001";
 const document = "30000000-0000-0000-0000-000000000001";
 const evidenceBytes = Buffer.from([0, 255, 128, 13, 10, 65, 66]);
+let imageUploadSeen = false; let imageReadSeen = false;
 let uploadSeen = false; let contentSeen = false;
 const upstream = http.createServer(async (request, response) => {
     const chunks = []; for await (const chunk of request) chunks.push(chunk);
     const body = Buffer.concat(chunks);
+    if (request.url.endsWith("/images") && request.method === "POST") {
+        imageUploadSeen = body.includes(evidenceBytes) && request.headers["if-match"] === '"version-one"' && request.headers["x-csrf-token"] === "test-csrf" && request.headers["content-type"].startsWith("multipart/form-data;");
+        response.setHeader("ETag", '"image-version"'); response.setHeader("Content-Type", "application/json"); response.end("{}"); return;
+    }
+    if (request.url.includes("/images/") && request.url.endsWith("/content")) {
+        imageReadSeen = true; response.setHeader("Content-Type", "image/png"); response.setHeader("X-Content-Type-Options", "nosniff");
+        response.setHeader("Content-Security-Policy", "default-src 'none'; sandbox"); response.setHeader("Content-Disposition", 'inline; filename="service-image.png"'); response.end(evidenceBytes); return;
+    }
     if (request.url.endsWith("/documents")) {
         uploadSeen = body.includes(evidenceBytes) && request.headers["if-match"] === '"version-one"' && request.headers["x-csrf-token"] === "test-csrf" && request.headers["content-type"].startsWith("multipart/form-data;");
         response.setHeader("ETag", '"version-two"');
@@ -35,7 +44,7 @@ const upstream = http.createServer(async (request, response) => {
     }
     if (request.url.startsWith("/api/v1/services")) {
         response.setHeader("Content-Type", "application/json");
-        const offer = {id: application, title: "Demo cleaning", description: "Fictional offer.", priceMinor: 25000, currency: "PHP", durationMinutes: 60, serviceArea: "Demo area", category: {id: organization, name: "Cleaning"}, provider: {id: organization, displayName: "Demo Provider"}, disclosure: "Fictional offer with simulated checks."};
+        const offer = {id: application, title: "Demo cleaning", description: "Fictional offer.", priceMinor: 25000, images: [{id: document, altText: "Fictional equipment", width: 80, height: 40, size: 200, createdAt: "2026-10-01T00:00:00Z", contentType: "image/png", url: "/api/v1/services/" + application + "/images/" + document + "/content"}], currency: "PHP", durationMinutes: 60, serviceArea: "Demo area", category: {id: organization, name: "Cleaning"}, provider: {id: organization, displayName: "Demo Provider"}, disclosure: "Fictional offer with simulated checks."};
         response.end(JSON.stringify(request.url.includes("/services/") ? offer : {items: [offer], totalCount: 1})); return;
     }
     if (request.url.startsWith("/api/v1/providers")) {
@@ -105,7 +114,19 @@ try {
     for (const action of ["publication", "archive"]) assert.equal((await fetch(catalogRoot + "/" + application + "/" + action, {method: "POST", headers: secure, body: "{}"})).status, 200);
     assert.equal((await fetch(origin + "/api/v1/services/" + application, {method: "PUT", headers: secure, body: "{}"})).status, 404);
     assert.equal((await fetch(catalogRoot, {method: "POST", headers: {...secure, Origin: "https://untrusted.example"}, body: "{}"})).status, 403);
-    console.log("PASS: catalog editor, public service pages and authorized proxy methods; public directory/detail content, publication/read-only proxy allowlist; reviewer/notification pages and allowed review/revision/PATCH proxy routes; verification page HTTP 200, multipart byte/header forwarding, binary private download, ETag/no-store forwarding, origin protection, and route allowlist.");
+    const imageForm = new FormData(); imageForm.append("file", new Blob([evidenceBytes], {type: "image/png"}), "demo.png"); imageForm.append("altText", "Fictional equipment"); imageForm.append("demoAcknowledged", "true");
+    const imageUpload = await fetch(catalogRoot + "/" + application + "/images", {method: "POST", headers: {Origin: origin, "X-CSRF-Token": "test-csrf", "If-Match": '"version-one"'}, body: imageForm});
+    assert.equal(imageUpload.status, 200); assert.ok(imageUploadSeen); assert.equal(imageUpload.headers.get("etag"), '"image-version"');
+    for(const url of [origin + "/api/v1/services/" + application + "/images/" + document + "/content", catalogRoot + "/" + application + "/images/" + document + "/content"]) {
+        const imageRead = await fetch(url); assert.equal(imageRead.status, 200);
+        assert.deepEqual(Buffer.from(await imageRead.arrayBuffer()), evidenceBytes); assert.equal(imageRead.headers.get("content-type"), "image/png"); assert.equal(imageRead.headers.get("cache-control"), "no-store"); assert.equal(imageRead.headers.get("x-content-type-options"), "nosniff");
+    }
+    assert.ok(imageReadSeen);
+    assert.equal((await fetch(catalogRoot + "/" + application + "/images/" + document, {method: "DELETE", headers: secure, body: "{}"})).status, 200);
+    assert.equal((await fetch(origin + "/api/v1/services/" + application + "/images", {method: "POST", headers: secure, body: "{}"})).status, 404);
+    assert.equal((await fetch(catalogRoot + "/" + application + "/images", {method: "POST", headers: {...secure, Origin: "https://untrusted.example"}, body: "{}"})).status, 403);
+    assert.equal((await fetch(catalogRoot + "/" + application + "/images", {method: "POST", headers: {...secure, "Content-Length": String(6 * 1024 * 1024 + 1)}, body: "x".repeat(6 * 1024 * 1024 + 1)})).status, 413);
+    console.log("PASS: image upload/removal, binary public/private delivery, image limit/origin/allowlist protections; catalog editor, public service pages and authorized proxy methods; public directory/detail content, publication/read-only proxy allowlist; reviewer/notification pages and allowed review/revision/PATCH proxy routes; verification page HTTP 200, multipart byte/header forwarding, binary private download, ETag/no-store forwarding, origin protection, and route allowlist.");
 } finally {
     const stopped = once(web, "exit"); web.kill(); await stopped;
     await new Promise(done => upstream.close(done));

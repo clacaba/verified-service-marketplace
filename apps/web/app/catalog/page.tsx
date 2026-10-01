@@ -52,16 +52,35 @@ export default function Catalog() {
     }
     async function action(action: "publication" | "archive", published?: boolean) {
         if (!selected || dirty || conflict) return;
-        if (!window.confirm(action === "archive" ? "Archive this listing permanently? It cannot be edited or republished." : published ? "Publish this saved offer publicly?" : "Remove this offer from public discovery?")) return;
+        if (!window.confirm(action === "archive" ? "Archive this listing permanently and queue its images for deletion? It cannot be edited or republished." : published ? "Publish this saved offer publicly?" : "Remove this offer from public discovery?")) return;
         setBusy(true);
         try {
             const result = await catalogRequest<Listing>(root + "/" + selected.id + "/" + action, "POST", action === "publication" ? {published} : {}, etag);
             setSelected(result.data); setInput(result.data); setEtag(result.etag); await list(org, page); setMessage("Listing status: " + result.data.status);
         } catch (error) {fail(error);} finally {setBusy(false);}
     }
+    async function uploadImage(event: React.FormEvent<HTMLFormElement>) {
+        event.preventDefault(); if (!selected || dirty || busy || conflict) return;
+        const form = event.currentTarget; const body = new FormData(form); const file = body.get("file");
+        if (!(file instanceof File) || file.size < 1 || file.size > 5 * 1024 * 1024 || !["image/png", "image/jpeg"].includes(file.type)) {setMessage("Choose a JPEG/PNG image up to 5 MiB."); return;}
+        setBusy(true); setMessage("");
+        try {
+            const result = await catalogRequest<Listing>(root + "/" + selected.id + "/images", "POST", body, etag);
+            setSelected(result.data); setInput(result.data); setEtag(result.etag); form.reset(); await list(org, page);
+            setMessage("Processed image saved. The listing is Draft; republish when ready.");
+        } catch(error) {fail(error);} finally {setBusy(false);}
+    }
+    async function removeImage(id: string) {
+        if (!selected || dirty || busy || conflict || !window.confirm("Remove this image and queue its stored copy for permanent deletion? The listing will become Draft.")) return;
+        setBusy(true); setMessage("");
+        try {
+            const result = await catalogRequest<Listing>(root + "/" + selected.id + "/images/" + id, "DELETE", {}, etag);
+            setSelected(result.data); setInput(result.data); setEtag(result.etag); await list(org, page); setMessage("Image removed. The listing is now Draft.");
+        } catch(error) {fail(error);} finally {setBusy(false);}
+    }
     async function nextPage(value: number) {setBusy(true); try {await list(org, value); setPage(value);} catch(error) {fail(error);} finally {setBusy(false);}}
     return <main className="auth-page"><Link href="/organizations" onClick={e => {if(dirty && !window.confirm("Leave without saving?")) e.preventDefault();}}>Organizations</Link><h1>Service catalog</h1>
-        <p>Fixed-price PHP offers. Owner management; Staff read-only. Publication requires a published provider profile with current checks. Images and booking are not available yet.</p>
+        <p>Fixed-price PHP offers. Owner management; Staff read-only. Publication requires a published provider profile with current checks. JPEG/PNG service images are available; booking is not available yet.</p>
         {busy && <p role="status">Loading or saving…</p>}
         {ready && <><section><h2>Your listings</h2>{items.length === 0 ? <p>No listings on this page.</p> : <ul>{items.map(item => <li key={item.id}>
             <button disabled={busy} onClick={() => open(item)}>{item.title}</button> · {item.status} · {price(item.priceMinor)}
@@ -78,6 +97,22 @@ export default function Catalog() {
             <label htmlFor="area">Service area</label><input id="area" required maxLength={250} value={input.serviceArea} onChange={e => change({serviceArea: e.target.value})}/>
             {owner && <button disabled={!!selected && !dirty}>Save draft</button>}
         </fieldset></form>
+        {selected && <section aria-label="Listing images"><h3>Service images ({selected.images.length}/5)</h3>
+            <p>Use fictional, non-sensitive service photos only. Never upload identity documents. Images are public only while this offer is eligible and published.</p>
+            {selected.images.length === 0 && <p>No images yet.</p>}
+            {selected.images.map(image => <figure key={image.id}>
+                <img src={image.url} alt={image.altText} width={image.width} height={image.height} style={{maxWidth: "100%", height: "auto"}} />
+                <figcaption>{image.altText} · {image.width} × {image.height}</figcaption>
+                {owner && selected.status !== "Archived" && <button disabled={busy || dirty || conflict} onClick={() => removeImage(image.id)}>Remove image</button>}
+            </figure>)}
+            {owner && selected.status !== "Archived" && <form onSubmit={uploadImage}><fieldset disabled={busy || dirty || conflict || selected.images.length >= 5}>
+                <label htmlFor="serviceImage">JPEG/PNG image (maximum 5 MiB)</label><input id="serviceImage" name="file" type="file" accept="image/jpeg,image/png" required />
+                <label htmlFor="imageAlt">Accessible image description</label><input id="imageAlt" name="altText" required maxLength={150}/>
+                <label><input name="demoAcknowledged" type="checkbox" value="true" required/> This is a fictional service photo, not private evidence or personal information.</label>
+                <p>Maximum source size: 4096 pixels per side and 12 megapixels; static images only. We resize to 1600 pixels, remove metadata, and scan for malware. Save text edits before uploading.</p>
+                <button>Upload processed image</button>
+            </fieldset></form>}
+        </section>}
         {selected && <><button disabled={busy} onClick={() => open(selected)}>Reload saved listing</button>
         {owner && selected.status !== "Archived" && <><button disabled={busy || dirty || conflict} onClick={() => action("publication", selected.status !== "Published")}>{selected.status === "Published" ? "Unpublish" : "Publish"}</button>{" "}<button disabled={busy || dirty || conflict} onClick={() => action("archive")}>Archive</button></>}
         {selected.status === "Published" && <p><Link href={"/services/" + selected.id} prefetch={false}>Open public listing</Link> (hidden if provider eligibility lapses)</p>}</>}

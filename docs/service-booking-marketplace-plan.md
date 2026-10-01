@@ -1184,6 +1184,21 @@ Core service listings and initial public discovery are implemented. Owners manag
 
 Lifecycle: Draft -> Published -> Draft, with terminal Archived. Edits reset Published offers to Draft. Publish requires an explicitly published and currently eligible provider profile; every public read rechecks verification, category membership, and status. Changes and audit records save atomically with exact ETag/CSRF protections. Archive preserves history for future booking references; hard deletion/restoration is not implemented.
 
-Public /services pages and /api/v1/services endpoints support bounded paging, literal text and area search, category/provider filters, centavo price ranges, and deterministic title/price sorts. All returned offers already require current verification. Badge-specific filtering, full-text/fuzzy/geographic search, multi-currency, images, availability, booking, payments, and reviews remain deferred.
+Public /services pages and /api/v1/services endpoints support bounded paging, literal text and area search, category/provider filters, centavo price ranges, and deterministic title/price sorts. All returned offers already require current verification. Badge-specific filtering, full-text/fuzzy/geographic search, multi-currency, availability, booking, payments, and reviews remain deferred. Safe service images are implemented in section 36.
 
-CATALOG-01 is delivered as a core text/pricing lifecycle slice, not the full image requirement. Before marking it complete, implement a separate authorized public listing-image workflow with safe image processing and cleanup; never reuse private evidence as public images. Real Docker/PostgreSQL migration and interactive browser testing also remain pending. See docs/architecture/service-catalog.md for exact validation, permissions, APIs, and walkthrough.
+CATALOG-01 now includes the core text/pricing lifecycle and the safe image workflow in section 36; never reuse private evidence as public images. Real Docker/PostgreSQL migration and interactive browser testing also remain pending. See docs/architecture/service-catalog.md for exact validation, permissions, APIs, and walkthrough.
+
+
+## 36. Safe public service-image uploads
+
+Delivered: active Owner uploads/removes one JPEG/PNG at a time with CSRF and exact listing ETag; Staff views only. Files are at most 5 MiB (6 MiB multipart), 4096 pixels per side/12 MP, static only, and at most five per listing. Required alt text and demo acknowledgment prohibit intentional private evidence reuse.
+
+Scan input and processed output; decode actual pixels, reject animation, resize within 1600 pixels, copy into a new metadata-free image, and encode PNG. Only processed bytes go into a distinct private service-images bucket with validated random keys; originals/filenames/metadata are discarded. Dedicated image credentials are required outside Development.
+
+Image mutations return the listing to Draft; explicit republication is required. Archive hides all images and queues deletion. Member-only previews and anonymous public image delivery are distinct; public delivery rechecks current listing/provider eligibility and deletion after storage retrieval, verifies size/hash, and uses no-store/nosniff/sandbox headers.
+
+Deletion reservations persist before object writes. Failed/stale/revoked/cancelled uploads and removed/archived images are cleaned by a separate retrying worker; never delete evidence through image cleanup. Compose enables the worker; host runs opt in with ServiceImages__CleanupEnabled=true. Multi-worker leases, production resource isolation/credential/IAM/encryption review, abuse moderation, and real Docker/PostgreSQL/MinIO/ClamAV/browser acceptance remain pending.
+
+Catalog editor uploads/removes and previews processed images; public directory/detail pages display them with accessible alt text without an optimization cache that bypasses eligibility. API contract, migration, reviewable SQL, tests and walkthrough are included. See docs/architecture/service-images.md.
+
+Next milestone: customer properties and provider availability before booking. Booking is still not implemented; profile/avatar image uploads are a separate feature.

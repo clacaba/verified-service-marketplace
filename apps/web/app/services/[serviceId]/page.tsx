@@ -14,7 +14,8 @@ export default async function Service({params}: {params: Promise<{serviceId: str
     return <main className="auth-page"><Link href="/services">Browse services</Link><h1>{s.title}</h1>
         <p><Link href={"/providers/" + s.provider.id} prefetch={false}>{s.provider.displayName}</Link> · {s.category.name}</p>
         <p>{price(s.priceMinor)} fixed price · {s.durationMinutes} minutes · {s.serviceArea}</p>
+        <section aria-label="Service photos">{s.images.map(image => <figure key={image.id}><img src={image.url} alt={image.altText} width={image.width} height={image.height} style={{maxWidth: "100%", height: "auto"}}/><figcaption>{image.altText}</figcaption></figure>)}</section>
         <p style={{whiteSpace: "pre-wrap"}}>{s.description}</p><p>{s.disclosure}</p>
-        <p>Availability, booking, payments, images, and reviews are not implemented yet.</p>
+        <p>Availability, booking, payments, and reviews are not implemented yet.</p>
     </main>;
 }

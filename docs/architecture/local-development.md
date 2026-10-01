@@ -32,6 +32,7 @@ $env:Email__Enabled = 'true'
 $env:Storage__AccessKey = 'marketplace-local'
 $env:Storage__SecretKey = 'local-storage-development-only'
 $env:Evidence__RetentionEnabled = 'true'
+$env:ServiceImages__CleanupEnabled = 'true'
 dotnet tool restore
 dotnet ef database update --project apps/api
 dotnet run --project apps/api --urls http://localhost:5080
@@ -91,3 +92,7 @@ After approval, open the Owner profile editor, save any changes, and explicitly 
 ## Try service listings
 
 Apply the ServiceCatalog migration through normal Development Compose startup or the host migration command above. Open /organizations -> Service catalog, save an offer, and publish it only after its verified provider profile is explicitly published. Browse /services anonymously. See [service catalog](service-catalog.md) for rules, validation, filters, and remaining image work.
+
+## Try safe service images
+
+Apply the ServiceImages migration with the usual host migration command, or rebuild the Development Compose stack. Select a saved listing in /catalog, upload a fictional JPEG/PNG with alt text and demo acknowledgment, and republish the offer to make the processed image visible publicly. Compose enables the separate image cleanup worker; host runs use ServiceImages__CleanupEnabled=true. Development creates a distinct private service-images bucket using local Storage credentials. Outside Development, configure dedicated ServiceImages__AccessKey and ServiceImages__SecretKey for that bucket and HTTPS. See [safe service images](service-images.md) for limits, workflows, and remaining production checks.

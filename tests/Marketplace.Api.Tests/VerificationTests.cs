@@ -19,13 +19,14 @@ namespace Marketplace.Api.Tests;
 
 public sealed partial class VerificationTests
 {
-    private sealed class Store : IEvidenceStore
+    private sealed class Store : IEvidenceStore, Marketplace.Api.Catalog.IServiceImageStore
     {
         public Dictionary<string, byte[]> Objects { get; } = [];
         public bool Fail { get; set; }
         public Func<Task>? OnPut { get; set; }
+        public Func<Task>? OnGet { get; set; }
         public async Task Put(string key, byte[] bytes, CancellationToken ct) { if (Fail) throw new EvidenceUnavailableException(); Objects[key] = bytes; if (OnPut != null) await OnPut(); }
-        public Task<byte[]> Get(string key, CancellationToken ct) => Task.FromResult(Objects[key]);
+        public async Task<byte[]> Get(string key, CancellationToken ct) { var bytes = Objects[key]; if (OnGet != null) await OnGet(); return bytes; }
         public Task Delete(string key, CancellationToken ct) { if (Fail) throw new EvidenceUnavailableException(); Objects.Remove(key); return Task.CompletedTask; }
     }
     private sealed class Scanner : IEvidenceScanner
@@ -37,7 +38,7 @@ public sealed partial class VerificationTests
     private sealed class Factory : WebApplicationFactory<Program>
     {
         private readonly SqliteConnection connection = new("Data Source=:memory:");
-        public Store Storage { get; } = new(); public Scanner Scan { get; } = new();
+        public Store Storage { get; } = new(); public Store ImageStorage { get; } = new(); public Scanner Scan { get; } = new();
         public Func<Task>? DecisionRace { get; set; }
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
@@ -47,6 +48,7 @@ public sealed partial class VerificationTests
             {
                 services.RemoveAll<DbContextOptions<MarketplaceDbContext>>(); services.RemoveAll<IDbContextOptionsConfiguration<MarketplaceDbContext>>();
                 services.AddDbContext<MarketplaceDbContext>(options => options.UseSqlite(connection).AddInterceptors(new DecisionRaceInterceptor(this)));
+                services.RemoveAll<Marketplace.Api.Catalog.IServiceImageStore>(); services.AddSingleton<Marketplace.Api.Catalog.IServiceImageStore>(ImageStorage);
                 services.RemoveAll<IEvidenceStore>(); services.AddSingleton<IEvidenceStore>(Storage);
                 services.RemoveAll<IEvidenceScanner>(); services.AddSingleton<IEvidenceScanner>(Scan);
             });

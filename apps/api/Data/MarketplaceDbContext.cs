@@ -10,6 +10,8 @@ namespace Marketplace.Api.Data;
 
 public sealed class MarketplaceDbContext(DbContextOptions<MarketplaceDbContext> options) : IdentityDbContext<Account>(options)
 {
+    public DbSet<ServiceImage> ServiceImages => Set<ServiceImage>();
+    public DbSet<ServiceImageDeletion> ServiceImageDeletions => Set<ServiceImageDeletion>();
     public DbSet<ServiceListing> ServiceListings => Set<ServiceListing>();
     public DbSet<AccountSession> AccountSessions => Set<AccountSession>();
     public DbSet<VerificationEmail> VerificationEmails => Set<VerificationEmail>();
@@ -30,6 +32,13 @@ public sealed class MarketplaceDbContext(DbContextOptions<MarketplaceDbContext> 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.Entity<ServiceListing>().HasMany(x => x.Images).WithOne().HasForeignKey(x => x.ServiceId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<ServiceImage>().Property(x => x.AltText).HasMaxLength(150);
+        builder.Entity<ServiceImage>().Property(x => x.ObjectKey).HasMaxLength(200);
+        builder.Entity<ServiceImage>().HasIndex(x => x.ObjectKey).IsUnique();
+        builder.Entity<ServiceImage>().Property(x => x.Sha256).HasMaxLength(64);
+        builder.Entity<ServiceImageDeletion>().Property(x => x.ObjectKey).HasMaxLength(200);
+        builder.Entity<ServiceImageDeletion>().HasIndex(x => x.DueAt);
         builder.Entity<ServiceListing>().HasOne<Organization>().WithMany().HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<ServiceListing>().HasOne<ServiceCategory>().WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<ServiceListing>().Property(x => x.Title).HasMaxLength(150);
@@ -40,7 +49,8 @@ public sealed class MarketplaceDbContext(DbContextOptions<MarketplaceDbContext> 
         builder.Entity<ServiceListing>().Property(x => x.Version).IsConcurrencyToken();
         builder.Entity<ServiceListing>().HasIndex(x => new { x.OrganizationId, x.Status });
         builder.Entity<ServiceListing>().HasIndex(x => new { x.Status, x.CategoryId, x.PriceMinor });
-        builder.Entity<ServiceListing>().ToTable(t => {
+        builder.Entity<ServiceListing>().ToTable(t =>
+        {
             t.HasCheckConstraint("CK_ServiceListing_Price", "\"PriceMinor\" >= 1 AND \"PriceMinor\" <= 100000000");
             t.HasCheckConstraint("CK_ServiceListing_Duration", "\"DurationMinutes\" >= 15 AND \"DurationMinutes\" <= 1440 AND \"DurationMinutes\" % 15 = 0");
             t.HasCheckConstraint("CK_ServiceListing_Currency", "\"Currency\" = 'PHP'");
