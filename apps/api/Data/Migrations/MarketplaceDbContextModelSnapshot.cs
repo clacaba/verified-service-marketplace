@@ -53,6 +53,9 @@ namespace Marketplace.Api.Data.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsReviewer")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean");
 
@@ -396,6 +399,137 @@ namespace Marketplace.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Marketplace.Api.Review.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(2200)
+                        .HasColumnType("character varying(2200)");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("Marketplace.Api.Review.PlatformAccessAudit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PlatformAccessAudits");
+                });
+
+            modelBuilder.Entity("Marketplace.Api.Review.VerificationCheck", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DecisionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Simulated")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DecisionId");
+
+                    b.HasIndex("OrganizationId", "ExpiresAt");
+
+                    b.ToTable("VerificationChecks");
+                });
+
+            modelBuilder.Entity("Marketplace.Api.Review.VerificationDecision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Decision")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("ReviewerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId");
+
+                    b.HasIndex("ReviewerId");
+
+                    b.ToTable("VerificationDecisions");
+                });
+
             modelBuilder.Entity("Marketplace.Api.Verification.EvidenceDeletion", b =>
                 {
                     b.Property<Guid>("Id")
@@ -435,8 +569,23 @@ namespace Marketplace.Api.Data.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ParentApplicationId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("ProviderId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ReviewLeaseExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ReviewStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReviewStartedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("RevisionNumber")
+                        .HasColumnType("integer");
 
                     b.Property<string>("SnapshotJson")
                         .IsRequired()
@@ -463,7 +612,13 @@ namespace Marketplace.Api.Data.Migrations
                         .IsUnique()
                         .HasFilter("\"IsActive\" = TRUE");
 
+                    b.HasIndex("ParentApplicationId")
+                        .IsUnique()
+                        .HasFilter("\"ParentApplicationId\" IS NOT NULL");
+
                     b.HasIndex("ProviderId");
+
+                    b.HasIndex("ReviewStartedBy");
 
                     b.ToTable("VerificationApplications");
                 });
@@ -734,6 +889,60 @@ namespace Marketplace.Api.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Marketplace.Api.Review.Notification", b =>
+                {
+                    b.HasOne("Marketplace.Api.Verification.VerificationApplication", null)
+                        .WithMany()
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marketplace.Api.Identity.Account", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Marketplace.Api.Review.PlatformAccessAudit", b =>
+                {
+                    b.HasOne("Marketplace.Api.Identity.Account", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Marketplace.Api.Review.VerificationCheck", b =>
+                {
+                    b.HasOne("Marketplace.Api.Review.VerificationDecision", null)
+                        .WithMany("Checks")
+                        .HasForeignKey("DecisionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marketplace.Api.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Marketplace.Api.Review.VerificationDecision", b =>
+                {
+                    b.HasOne("Marketplace.Api.Verification.VerificationApplication", null)
+                        .WithMany("Decisions")
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marketplace.Api.Identity.Account", null)
+                        .WithMany()
+                        .HasForeignKey("ReviewerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Marketplace.Api.Verification.VerificationApplication", b =>
                 {
                     b.HasOne("Marketplace.Api.Organizations.Organization", null)
@@ -742,11 +951,21 @@ namespace Marketplace.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Marketplace.Api.Verification.VerificationApplication", null)
+                        .WithMany()
+                        .HasForeignKey("ParentApplicationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Marketplace.Api.Providers.ProviderProfile", null)
                         .WithMany()
                         .HasForeignKey("ProviderId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Marketplace.Api.Identity.Account", null)
+                        .WithMany()
+                        .HasForeignKey("ReviewStartedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Marketplace.Api.Verification.VerificationDocument", b =>
@@ -814,8 +1033,15 @@ namespace Marketplace.Api.Data.Migrations
                     b.Navigation("Categories");
                 });
 
+            modelBuilder.Entity("Marketplace.Api.Review.VerificationDecision", b =>
+                {
+                    b.Navigation("Checks");
+                });
+
             modelBuilder.Entity("Marketplace.Api.Verification.VerificationApplication", b =>
                 {
+                    b.Navigation("Decisions");
+
                     b.Navigation("Documents");
                 });
 #pragma warning restore 612, 618

@@ -57,7 +57,16 @@ try {
     const forbidden = await fetch(origin + "/api/v1/organizations/" + organization + "/verifications", { method: "POST", headers: { Origin: "https://untrusted.example", "Content-Type": "application/json" }, body: "{}" });
     assert.equal(forbidden.status, 403);
     assert.equal((await fetch(origin + "/api/v1/not-allowlisted")).status, 404);
-    console.log("PASS: verification page HTTP 200, multipart byte/header forwarding, binary private download, ETag/no-store forwarding, origin protection, and route allowlist.");
+    assert.equal((await fetch(origin + "/admin/verifications")).status, 200);
+    assert.equal((await fetch(origin + "/notifications")).status, 200);
+    assert.equal((await fetch(origin + "/api/v1/admin/verifications?status=Submitted")).status, 200);
+    for (const action of ["start-review", "decisions"]) {
+        assert.equal((await fetch(origin + "/api/v1/admin/verifications/" + application + "/" + action, { method: "POST", headers: { Origin: origin, "Content-Type": "application/json", "X-CSRF-Token": "test-csrf", "If-Match": '"version-one"' }, body: "{}" })).status, 200);
+    }
+    assert.equal((await fetch(origin + "/api/v1/organizations/" + organization + "/verifications/" + application + "/revisions", { method: "POST", headers: { Origin: origin, "Content-Type": "application/json", "X-CSRF-Token": "test-csrf" }, body: "{}" })).status, 200);
+    assert.equal((await fetch(origin + "/api/v1/notifications/" + document, { method: "PATCH", headers: { Origin: origin, "Content-Type": "application/json", "X-CSRF-Token": "test-csrf" }, body: '{"read":true}' })).status, 200);
+    assert.equal((await fetch(origin + "/api/v1/admin/unknown")).status, 404);
+    console.log("PASS: reviewer/notification pages and allowed review/revision/PATCH proxy routes; verification page HTTP 200, multipart byte/header forwarding, binary private download, ETag/no-store forwarding, origin protection, and route allowlist.");
 } finally {
     const stopped = once(web, "exit"); web.kill(); await stopped;
     await new Promise(done => upstream.close(done));

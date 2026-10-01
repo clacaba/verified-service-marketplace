@@ -59,6 +59,14 @@ public static class ProviderEndpoints
             if (categoryIds.Length > 20 || categoryIds.Distinct().Count() != categoryIds.Length) errors["categoryIds"] = ["Choose up to 20 distinct active categories."];
             else if (await db.ServiceCategories.CountAsync(x => x.Active && categoryIds.Contains(x.Id)) != categoryIds.Length) errors["categoryIds"] = ["Choose only active marketplace categories."];
             if (errors.Count != 0) return Results.ValidationProblem(errors);
+            var materiallyChanged = profile.DisplayName != input.DisplayName.Trim() || profile.ProviderType != input.ProviderType
+                || profile.Biography != (input.Biography?.Trim() ?? "") || profile.ServiceArea != (input.ServiceArea?.Trim() ?? "")
+                || !profile.Categories.Select(x => x.CategoryId).Order().SequenceEqual(categoryIds.Order());
+            if (materiallyChanged)
+            {
+                var checks = await db.VerificationChecks.Where(x => x.OrganizationId == organizationId && x.RevokedAt == null).ToListAsync();
+                foreach (var check in checks) check.RevokedAt = DateTime.UtcNow;
+            }
             profile.DisplayName = input.DisplayName.Trim();
             profile.ProviderType = input.ProviderType;
             profile.Biography = input.Biography?.Trim() ?? "";

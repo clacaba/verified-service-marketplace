@@ -98,7 +98,11 @@ export default function VerificationPage() {
                     if (!window.confirm("Submit this profile and evidence snapshot? Submitted evidence cannot be edited.")) return;
                     action(async () => { await verificationRequest(base + "/" + application.id + "/submit", "POST", {}, etag); await refresh(application.id); setMessage("Submitted. The evidence snapshot is now locked."); });
                 }}>Submit for review</button></>}
-                {application.status === "Submitted" && <p>Submitted evidence is locked. Administrator review and revision workflows are the next feature.</p>}
+                {application.status !== "Draft" && <p>Submitted evidence remains locked. Your latest status is {application.status}.</p>}
+                {application.parentApplicationId && <p>Correction draft linked to application {application.parentApplicationId.slice(0, 8)} · revision {application.revisionNumber}.</p>}
+                <h3>Decision history</h3>
+                {application.decisions.length === 0 ? <p>No review decision yet.</p> : <ul>{application.decisions.map(decision => <li key={decision.id}>{decision.decision} · {new Date(decision.decidedAt).toLocaleString()}<p>{decision.reason}</p>{decision.checks.map(check => <p key={check.type}>Simulated {check.type} · {check.revokedAt ? "Revoked after profile changes" : "Expires " + new Date(check.expiresAt).toLocaleString()}</p>)}</li>)}</ul>}
+                {owner && application.canCreateRevision && <button disabled={busy} onClick={() => action(async () => { const result = await verificationRequest(base + "/" + application.id + "/revisions", "POST", {}, etag); await refresh(result.data.id); setMessage("New draft created. Earlier evidence and decisions are preserved. Upload fresh fictional evidence."); })}>{application.status === "Approved" ? "Create renewal draft" : "Create corrected draft"}</button>}
                 {!owner && <p>Your Staff role permits reading and private downloads, not uploading or submitting.</p>}
                 <button disabled={busy} onClick={() => action(() => refresh(application.id))}>Reload latest application</button>
             </section>}

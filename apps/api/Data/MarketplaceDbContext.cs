@@ -1,3 +1,4 @@
+using Marketplace.Api.Review;
 using Marketplace.Api.Verification;
 using Marketplace.Api.Providers;
 using Marketplace.Api.Identity;
@@ -20,9 +21,29 @@ public sealed class MarketplaceDbContext(DbContextOptions<MarketplaceDbContext> 
     public DbSet<VerificationApplication> VerificationApplications => Set<VerificationApplication>();
     public DbSet<VerificationDocument> VerificationDocuments => Set<VerificationDocument>();
     public DbSet<EvidenceDeletion> EvidenceDeletions => Set<EvidenceDeletion>();
+    public DbSet<VerificationDecision> VerificationDecisions => Set<VerificationDecision>();
+    public DbSet<VerificationCheck> VerificationChecks => Set<VerificationCheck>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<PlatformAccessAudit> PlatformAccessAudits => Set<PlatformAccessAudit>();
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.Entity<VerificationApplication>().HasOne<VerificationApplication>().WithMany().HasForeignKey(x => x.ParentApplicationId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<VerificationApplication>().HasIndex(x => x.ParentApplicationId).IsUnique().HasFilter("\"ParentApplicationId\" IS NOT NULL");
+        builder.Entity<VerificationApplication>().HasOne<Account>().WithMany().HasForeignKey(x => x.ReviewStartedBy).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<VerificationApplication>().HasMany(x => x.Decisions).WithOne().HasForeignKey(x => x.ApplicationId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<VerificationDecision>().HasOne<Account>().WithMany().HasForeignKey(x => x.ReviewerId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<VerificationDecision>().Property(x => x.Decision).HasMaxLength(40);
+        builder.Entity<VerificationDecision>().Property(x => x.Reason).HasMaxLength(2000);
+        builder.Entity<VerificationDecision>().HasMany(x => x.Checks).WithOne().HasForeignKey(x => x.DecisionId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<VerificationCheck>().HasOne<Organization>().WithMany().HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<VerificationCheck>().Property(x => x.Type).HasMaxLength(40);
+        builder.Entity<VerificationCheck>().HasIndex(x => new { x.OrganizationId, x.ExpiresAt });
+        builder.Entity<Notification>().HasOne<Account>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<Notification>().HasOne<VerificationApplication>().WithMany().HasForeignKey(x => x.ApplicationId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<Notification>().Property(x => x.Message).HasMaxLength(2200);
+        builder.Entity<Notification>().HasIndex(x => new { x.UserId, x.CreatedAt });
+        builder.Entity<PlatformAccessAudit>().HasOne<Account>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<VerificationApplication>().Property(x => x.Version).IsConcurrencyToken();
         builder.Entity<VerificationApplication>().Property(x => x.Status).HasMaxLength(40);
         builder.Entity<VerificationApplication>().HasIndex(x => x.OrganizationId).IsUnique().HasFilter("\"IsActive\" = TRUE");

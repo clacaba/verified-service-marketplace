@@ -8,10 +8,14 @@ const invitations = new RegExp("^organizations/" + uuid + "/invitations$", "i");
 const member = new RegExp("^organizations/" + uuid + "/members/" + uuid + "$", "i");
 const verificationList = new RegExp("^organizations/" + uuid + "/verifications$", "i");
 const verificationDetail = new RegExp("^organizations/" + uuid + "/verifications/" + uuid + "$", "i");
-const verificationMutation = new RegExp("^organizations/" + uuid + "/verifications/" + uuid + "/(documents|submit)$", "i");
+const verificationMutation = new RegExp("^organizations/" + uuid + "/verifications/" + uuid + "/(documents|submit|revisions)$", "i");
 const documentRemoval = new RegExp("^organizations/" + uuid + "/verifications/" + uuid + "/documents/" + uuid + "$", "i");
 const documentAccess = new RegExp("^verification-documents/" + uuid + "/access$", "i");
 const documentContent = new RegExp("^verification-documents/" + uuid + "/content$", "i");
+const adminQueue = /^admin\/verifications$/;
+const adminDetail = new RegExp("^admin/verifications/" + uuid + "$", "i");
+const adminAction = new RegExp("^admin/verifications/" + uuid + "/(start-review|decisions)$", "i");
+const notification = new RegExp("^notifications/" + uuid + "$", "i");
 class PayloadTooLarge extends Error {}
 async function readBody(request: NextRequest): Promise<ArrayBuffer | undefined> {
     if (request.method === "GET" || !request.body) return undefined;
@@ -33,9 +37,10 @@ async function readBody(request: NextRequest): Promise<ArrayBuffer | undefined> 
 async function forward(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
     const { path } = await context.params; const route = path.join("/"); const method = request.method;
     const allowed = permitted.has(method + " " + route)
-        || (method === "POST" && (route === "organizations" || route === "invitations/accept" || invitations.test(route) || verificationList.test(route) || verificationMutation.test(route) || documentAccess.test(route)))
-        || (method === "GET" && (organization.test(route) || verificationList.test(route) || verificationDetail.test(route) || documentContent.test(route)))
+        || (method === "POST" && (route === "organizations" || route === "invitations/accept" || invitations.test(route) || verificationList.test(route) || verificationMutation.test(route) || documentAccess.test(route) || adminAction.test(route)))
+        || (method === "GET" && (organization.test(route) || verificationList.test(route) || verificationDetail.test(route) || documentContent.test(route) || adminQueue.test(route) || adminDetail.test(route) || route === "notifications"))
         || (["GET", "PUT"].includes(method) && profile.test(route))
+        || (method === "PATCH" && notification.test(route))
         || (method === "DELETE" && (member.test(route) || documentRemoval.test(route)));
     if (!allowed) return Response.json({ title: "Resource unavailable" }, { status: 404 });
     if (method !== "GET" && request.headers.get("origin") !== (process.env.WEB_ORIGIN ?? "http://localhost:3000")) return Response.json({ title: "Invalid request origin" }, { status: 403 });
@@ -59,3 +64,6 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
     }
 }
 export const GET = forward; export const POST = forward; export const DELETE = forward; export const PUT = forward;
+
+
+export const PATCH = forward;

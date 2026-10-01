@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 namespace Marketplace.Api.Identity;
 
-public sealed class Account : IdentityUser { public string DisplayName { get; set; } = ""; public string AccountType { get; set; } = "Customer"; }
+public sealed class Account : IdentityUser { public bool IsReviewer { get; set; } public string DisplayName { get; set; } = ""; public string AccountType { get; set; } = "Customer"; }
 public sealed class AccountSession { public Guid Id { get; set; } = Guid.NewGuid(); public string UserId { get; set; } = ""; public DateTime ExpiresAt { get; set; } public DateTime? RevokedAt { get; set; } }
 public sealed class VerificationEmail
 {

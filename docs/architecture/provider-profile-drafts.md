@@ -28,6 +28,6 @@ The browser proxy allowlists these routes and forwards If-Match/ETag. Private re
 
 ## Deferred work and validation limits
 
-Non-null imageId is rejected; arbitrary external image identifiers are not trusted. Image upload will follow private storage authorization work. Verification applications/checks do not exist yet, so check invalidation and publishing are not implemented and must be added before verified profiles can change.
+Non-null imageId is rejected; arbitrary external image identifiers are not trusted. Image upload will follow private storage authorization work. Verification applications/checks now exist: material profile changes revoke current checks and permit a linked renewal draft. Approval cannot accept profile details changed since submission. Public publishing remains a separate upcoming feature.
 
 Integration tests use SQLite and cover drafts, persistence, required/invalid fields, active categories, CSRF, authentication, isolation, Staff permissions, revocation, and version conflicts. Frontend type checking/build are checked. Docker/PostgreSQL migration and real-browser email/onboarding journeys remain pending.

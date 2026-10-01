@@ -1,5 +1,5 @@
 export type EvidenceDocument = { id: string; evidenceType: string; fileName: string; contentType: string; size: number; expiresAt: string; scanStatus: string };
-export type Application = { id: string; status: "Draft" | "Submitted"; version: string; submissionVersion: number; submittedAt: string | null; requiredEvidence: string[]; documents: EvidenceDocument[]; simulated: boolean };
+export type Application = { id: string; status: "Draft" | "Submitted" | "UnderReview" | "Approved" | "Rejected" | "AdditionalInformationRequired"; version: string; submissionVersion: number; submittedAt: string | null; requiredEvidence: string[]; documents: EvidenceDocument[]; simulated: boolean; canCreateRevision: boolean; parentApplicationId: string | null; revisionNumber: number; reviewStartedBy: string | null; reviewLeaseExpiresAt: string | null; submittedSnapshot: { displayName: string; providerType: string; biography: string; serviceArea: string } | null; decisions: { id: string; decision: string; reason: string; decidedAt: string; checks: { type: string; expiresAt: string; revokedAt: string | null; simulated: boolean }[] }[] };
 export async function verificationRequest(path: string, method = "GET", payload?: FormData | object, etag?: string): Promise<{ data: any; etag: string }> {
     const headers: Record<string, string> = {};
     if (method !== "GET") {

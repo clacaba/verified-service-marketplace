@@ -2402,7 +2402,7 @@
         "tags": [
           "Verification"
         ],
-        "description": "Required permission: Verification write. ",
+        "description": "Owner and exact If-Match. Create a NEW linked Draft with fresh uploads after rejection/information request, or after a required approval check expires/is revoked. Earlier snapshot and evidence remain unchanged. One active application and one child per parent.",
         "security": [
           {
             "browserSession": []
@@ -2788,7 +2788,7 @@
         "tags": [
           "Review"
         ],
-        "description": "Required permission: Reviewer. ",
+        "description": "Provisioned verified Reviewer with no current/historical organization membership; claim for 30 minutes using exact If-Match. Expired claims or claims held by revoked/unverified reviewers may be reclaimed.",
         "security": [
           {
             "browserSession": []
@@ -2942,7 +2942,7 @@
         "tags": [
           "Review"
         ],
-        "description": "Required permission: Reviewer. ",
+        "description": "Current assigned Reviewer lease and exact If-Match required. Approval checks matching submitted details, active categories, current evidence, and all required simulated checks. Decision, audit, checks, notifications and encrypted owner email queue commit atomically.",
         "security": [
           {
             "browserSession": []
@@ -4302,14 +4302,19 @@
         "properties": {
           "type": {
             "type": "string",
-            "minLength": 1
+            "enum": [
+              "Identity",
+              "BusinessRegistration",
+              "TradeQualification"
+            ]
           },
           "expiresAt": {
             "type": "string",
             "format": "date-time",
             "nullable": true
           }
-        }
+        },
+        "additionalProperties": false
       },
       "DecisionInput": {
         "type": "object",
@@ -4334,7 +4339,8 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CheckInput"
-            }
+            },
+            "maxItems": 20
           }
         },
         "description": "Approval requires all configured checks; rejection and information requests require a nonempty reason. Simulation is controlled by the server."
@@ -4344,9 +4350,12 @@
         "required": [
           "id",
           "reviewerId",
+          "decision",
           "previousStatus",
           "newStatus",
-          "decidedAt"
+          "reason",
+          "decidedAt",
+          "checks"
         ],
         "properties": {
           "id": {
@@ -4357,19 +4366,61 @@
             "type": "string",
             "format": "uuid"
           },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "Approved",
+              "Rejected",
+              "AdditionalInformationRequired"
+            ]
+          },
           "previousStatus": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "UnderReview"
+            ]
           },
           "newStatus": {
             "type": "string"
           },
           "reason": {
             "type": "string",
-            "nullable": true
+            "maxLength": 2000
           },
           "decidedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "Identity",
+                    "BusinessRegistration",
+                    "TradeQualification"
+                  ]
+                },
+                "expiresAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "revokedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "nullable": true
+                },
+                "simulated": {
+                  "type": "boolean",
+                  "enum": [
+                    true
+                  ]
+                }
+              }
+            }
           }
         }
       },
@@ -4457,6 +4508,34 @@
             "enum": [
               true
             ]
+          },
+          "parentApplicationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "revisionNumber": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reviewStartedBy": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "reviewStartedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "reviewLeaseExpiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "canCreateRevision": {
+            "type": "boolean",
+            "description": "Latest rejected/information-request application, or an approval with an expired/revoked required check."
           }
         }
       },
@@ -4553,17 +4632,24 @@
         "type": "object",
         "required": [
           "id",
-          "eventType",
+          "applicationId",
+          "organizationId",
+          "message",
           "createdAt",
-          "message"
+          "read"
         ],
         "properties": {
           "id": {
             "type": "string",
             "format": "uuid"
           },
-          "eventType": {
-            "type": "string"
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
           },
           "message": {
             "type": "string"
@@ -4572,10 +4658,8 @@
             "type": "string",
             "format": "date-time"
           },
-          "readAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
+          "read": {
+            "type": "boolean"
           }
         }
       },

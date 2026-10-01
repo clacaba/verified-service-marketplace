@@ -1,3 +1,4 @@
+using Marketplace.Api.Review;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -52,7 +53,7 @@ public static class VerificationEndpoints
             var current = page ?? 1; var size = pageSize ?? 20;
             if (current < 1 || current > 100000 || size < 1 || size > 100) return Problem(400, "Invalid pagination.");
             var query = db.VerificationApplications.Where(x => x.OrganizationId == organizationId);
-            var applications = await query.Include(x => x.Documents).OrderByDescending(x => x.CreatedAt).ThenBy(x => x.Id).Skip((current - 1) * size).Take(size).ToListAsync();
+            var applications = await query.Include(x => x.Documents).Include(x => x.Decisions).ThenInclude(x => x.Checks).AsSplitQuery().OrderByDescending(x => x.CreatedAt).ThenBy(x => x.Id).Skip((current - 1) * size).Take(size).ToListAsync();
             var items = new List<object>(); foreach (var application in applications) items.Add(await Summary(application, db, policy.Value));
             return Results.Ok(new { items, page = current, pageSize = size, totalCount = await query.CountAsync() });
         });
@@ -86,9 +87,13 @@ public static class VerificationEndpoints
             if (!await scanner.IsClean(bytes, http.RequestAborted)) return Problem(400, "Upload rejected by malware scanning.");
             var document = new VerificationDocument
             {
-                ApplicationId = application.Id, EvidenceType = type, ContentType = detected,
-                FileName = EvidenceFileValidation.SafeName(upload.FileName, detected), Size = bytes.Length,
-                Sha256 = Convert.ToHexString(SHA256.HashData(bytes)), ObjectKey = "evidence/" + Guid.NewGuid().ToString("N"),
+                ApplicationId = application.Id,
+                EvidenceType = type,
+                ContentType = detected,
+                FileName = EvidenceFileValidation.SafeName(upload.FileName, detected),
+                Size = bytes.Length,
+                Sha256 = Convert.ToHexString(SHA256.HashData(bytes)),
+                ObjectKey = "evidence/" + Guid.NewGuid().ToString("N"),
                 ExpiresAt = DateTime.UtcNow.AddDays(policy.Value.DraftRetentionDays)
             };
             // Persist a cleanup reservation before writing bytes. A crash or stale save cannot strand an object.
@@ -129,7 +134,7 @@ public static class VerificationEndpoints
             var required = Required(profile, policy.Value);
             var documents = application.Documents.Where(x => x.DeletedAt == null && x.ExpiresAt > DateTime.UtcNow).ToArray();
             if (required.Any(type => !documents.Any(x => x.EvidenceType == type))) return Problem(400, "Upload current evidence for every required type before submitting.");
-            application.Status = "Submitted"; application.SubmittedAt = DateTime.UtcNow; application.SubmissionVersion = 1; application.Version = Guid.NewGuid();
+            application.Status = "Submitted"; application.SubmittedAt = DateTime.UtcNow; application.SubmissionVersion = application.RevisionNumber + 1; application.Version = Guid.NewGuid();
             application.SnapshotJson = JsonSerializer.Serialize(new { profile.Id, profile.DisplayName, profile.ProviderType, profile.Biography, profile.ServiceArea, categoryIds, profileVersion = profile.Version, requiredEvidence = required, documents = documents.Select(x => new { x.Id, x.EvidenceType, x.Sha256, x.ContentType, x.Size }) }, new JsonSerializerOptions(JsonSerializerDefaults.Web));
             foreach (var document in documents) { document.ExpiresAt = DateTime.UtcNow.AddDays(policy.Value.SubmittedRetentionDays); document.Version = Guid.NewGuid(); }
             // Detect profile edits racing submission; evidence and snapshot save in the same transaction.
@@ -143,7 +148,7 @@ public static class VerificationEndpoints
             var document = await db.VerificationDocuments.SingleOrDefaultAsync(x => x.Id == documentId && x.DeletedAt == null && x.ExpiresAt > DateTime.UtcNow);
             if (document is null) return Results.NotFound();
             var application = await db.VerificationApplications.SingleAsync(x => x.Id == document.ApplicationId);
-            var permission = await Authorize(db, application.OrganizationId, http, false); if (permission != null) return permission;
+            var permission = await DocumentPermission(db, application, http); if (permission != null) return permission;
             var lifetime = TimeSpan.FromSeconds(policy.Value.AccessSeconds);
             var token = protection.CreateProtector("Marketplace.EvidenceAccess.v1").ToTimeLimitedDataProtector().Protect(document.Id + "|" + UserId(http) + "|" + http.User.FindFirstValue("session_id"), lifetime);
             Audit(db, application.OrganizationId, http, "verification.document-access-granted", document.Id); await db.SaveChangesAsync();
@@ -166,6 +171,12 @@ public static class VerificationEndpoints
             return Results.File(bytes, "application/octet-stream", document.FileName, enableRangeProcessing: false);
         });
     }
+    private static async Task<IResult?> DocumentPermission(MarketplaceDbContext db, VerificationApplication application, HttpContext http)
+    {
+        var member = await db.OrganizationMemberships.AnyAsync(x => x.OrganizationId == application.OrganizationId && x.UserId == UserId(http) && x.Active);
+        if (member) return null;
+        return application.Status != "Draft" && await ReviewerAccess.CanReview(db, application.OrganizationId, http) ? null : Results.NotFound();
+    }
     private static string UserId(HttpContext http) => http.User.FindFirstValue(ClaimTypes.NameIdentifier)!;
     private static string Tag(Guid version) => "\"" + version.ToString("D") + "\"";
     private static IResult Problem(int status, string title) => Results.Problem(statusCode: status, title: title);
@@ -175,7 +186,7 @@ public static class VerificationEndpoints
         return member is null ? Results.NotFound() : write && member.Role != "Owner" ? Results.Forbid() : null;
     }
     private static Task<VerificationApplication?> Application(MarketplaceDbContext db, Guid organizationId, Guid id) =>
-        db.VerificationApplications.Include(x => x.Documents).SingleOrDefaultAsync(x => x.Id == id && x.OrganizationId == organizationId);
+        db.VerificationApplications.Include(x => x.Documents).Include(x => x.Decisions).ThenInclude(x => x.Checks).AsSplitQuery().SingleOrDefaultAsync(x => x.Id == id && x.OrganizationId == organizationId);
     private static IResult? Editable(VerificationApplication application, HttpContext http)
     {
         var expected = http.Request.Headers.IfMatch.ToString();
@@ -184,16 +195,17 @@ public static class VerificationEndpoints
         if (application.Status != "Draft") return Problem(409, "Submitted evidence is immutable.");
         return null;
     }
-    private static string[] Required(ProviderProfile profile, EvidenceOptions policy) =>
+    internal static string[] Required(ProviderProfile profile, EvidenceOptions policy) =>
         (profile.ProviderType == "Business" ? policy.BusinessRequired : policy.IndividualRequired)
         .Concat(profile.Categories.Any(x => policy.TradeCategoryIds.Contains(x.CategoryId.ToString("D"))) ? [policy.TradeEvidence] : Array.Empty<string>()).Distinct().ToArray();
     private static object DocumentSummary(VerificationDocument document) => new { document.Id, document.EvidenceType, fileName = document.FileName, document.ContentType, document.Size, document.UploadedAt, document.ExpiresAt, scanStatus = "Clean", simulated = true };
-    private static async Task<object> Summary(VerificationApplication application, MarketplaceDbContext db, EvidenceOptions policy)
+    internal static async Task<object> Summary(VerificationApplication application, MarketplaceDbContext db, EvidenceOptions policy)
     {
         var profile = await db.ProviderProfiles.Include(x => x.Categories).SingleAsync(x => x.Id == application.ProviderId);
         var snapshot = JsonSerializer.Deserialize<JsonElement>(application.SnapshotJson);
         var required = application.Status == "Draft" ? Required(profile, policy) : snapshot.GetProperty("requiredEvidence").EnumerateArray().Select(x => x.GetString()!).ToArray();
-        return new { application.Id, application.ProviderId, application.OrganizationId, application.Status, application.SubmissionVersion, application.SubmittedAt, application.Version, documents = application.Documents.Where(x => x.DeletedAt == null && x.ExpiresAt > DateTime.UtcNow).OrderBy(x => x.UploadedAt).Select(DocumentSummary), requiredEvidence = required, decisions = Array.Empty<object>(), submittedSnapshot = application.Status == "Draft" ? (JsonElement?)null : snapshot, simulated = true };
+        var canCreateRevision = application.IsActive && (application.Status is "Rejected" or "AdditionalInformationRequired" || application.Status == "Approved" && required.Any(type => !application.Decisions.SelectMany(x => x.Checks).Any(x => x.Type == type && x.RevokedAt == null && x.ExpiresAt > DateTime.UtcNow)));
+        return new { application.Id, application.ProviderId, application.OrganizationId, application.Status, application.SubmissionVersion, application.SubmittedAt, application.Version, documents = application.Documents.Where(x => x.DeletedAt == null && x.ExpiresAt > DateTime.UtcNow).OrderBy(x => x.UploadedAt).Select(DocumentSummary), requiredEvidence = required, decisions = application.Decisions.OrderBy(x => x.DecidedAt).Select(x => new { x.Id, x.ReviewerId, x.Decision, previousStatus = "UnderReview", newStatus = x.Decision, x.Reason, x.DecidedAt, checks = x.Checks.Select(c => new { c.Type, c.ExpiresAt, c.RevokedAt, c.Simulated }) }), application.ParentApplicationId, application.RevisionNumber, application.ReviewStartedBy, application.ReviewStartedAt, application.ReviewLeaseExpiresAt, canCreateRevision, submittedSnapshot = application.Status == "Draft" ? (JsonElement?)null : snapshot, simulated = true };
     }
     private static void Audit(MarketplaceDbContext db, Guid organizationId, HttpContext http, string action, Guid resource) =>
         db.OrganizationAuditEvents.Add(new OrganizationAuditEvent { OrganizationId = organizationId, ActorId = UserId(http), Action = action, ResourceId = resource.ToString() });

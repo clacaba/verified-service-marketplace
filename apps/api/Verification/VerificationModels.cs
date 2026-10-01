@@ -5,6 +5,12 @@ public sealed class VerificationApplication
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid OrganizationId { get; set; }
     public Guid ProviderId { get; set; }
+    public Guid? ParentApplicationId { get; set; }
+    public int RevisionNumber { get; set; }
+    public string? ReviewStartedBy { get; set; }
+    public DateTime? ReviewStartedAt { get; set; }
+    public DateTime? ReviewLeaseExpiresAt { get; set; }
+    public List<Marketplace.Api.Review.VerificationDecision> Decisions { get; set; } = [];
     public string Status { get; set; } = "Draft";
     public bool IsActive { get; set; } = true;
     public Guid Version { get; set; } = Guid.NewGuid();

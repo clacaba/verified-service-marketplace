@@ -152,6 +152,7 @@ public static class OrganizationEndpoints
                                  orderby organization.Name, organization.Id
                                  select new { member.OrganizationId, organization.Name, member.Role, member.Active }).ToListAsync();
         var capabilities = new HashSet<string> { account.AccountType };
+        if (account.IsReviewer && account.EmailConfirmed) capabilities.Add("Reviewer");
         if (memberships.Count != 0) capabilities.Add("Provider");
         return new
         {

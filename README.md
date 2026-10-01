@@ -12,7 +12,8 @@ logout, and database-backed sessions are implemented. Organizations, owner/staff
 are implemented. Private provider profile drafts, active categories, and owner-only
 editing with version-conflict protection are available. Private evidence uploads, malware scanning, session-bound downloads, and immutable
 verification submissions are implemented for fictional demo files. Administrator
-review and verification decisions are next.
+review, decisions, notifications, and corrected resubmissions are implemented.
+Public profiles and precise verification badges are next.
 
 ## Local development
 
@@ -49,6 +50,7 @@ and authentication configuration.
 - [Milestone A wireframes](docs/architecture/milestone-a-wireframes.md)
 - [Milestone A API contract draft](docs/api/milestone-a-contract.md)
 - [Milestone A OpenAPI specification](docs/api/milestone-a.openapi.json)
+- [Administrator review and corrected submissions](docs/architecture/administrator-review-and-revisions.md)
 - [Private verification evidence](docs/architecture/private-verification-evidence.md)
 - [Provider profile drafts](docs/architecture/provider-profile-drafts.md)
 - [Local development foundation](docs/architecture/local-development.md)

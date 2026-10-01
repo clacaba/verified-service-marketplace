@@ -1,6 +1,6 @@
 # Local development foundation
 
-Status: Foundation, authentication, organizations, profile drafts, and private evidence uploads/submissions implemented. Administrative review and badges remain planned.
+Status: Foundation, authentication, organizations, profile drafts, and private evidence uploads/submissions implemented. Administrative review/decisions and corrected drafts are implemented; public badges remain planned.
 
 ## Prerequisites
 
@@ -74,3 +74,8 @@ Dependencies are pinned in package manifests and lockfiles. Container tags are e
 ## Try evidence submission
 
 See [private verification evidence](private-verification-evidence.md) for the complete walkthrough, fictional evidence rules, retention defaults, short-lived private downloads, and remaining production hardening. Backend tests use SQLite and scanner/storage doubles; actual Docker/PostgreSQL/MinIO/ClamAV validation remains pending.
+
+
+## Try administrator review
+
+Use a separate registered and verified account. A trusted operator must grant Reviewer access using the command in [administrator review and revisions](administrator-review-and-revisions.md). The shared /login page then leads to /account → Administrator review queue. No default administrative account or credential is seeded. See that guide for revocation, claims, decisions, notifications, correction drafts, and renewal.
