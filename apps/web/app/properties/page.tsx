@@ -59,7 +59,7 @@ export default function PropertiesPage() {
             <button disabled={busy || page === 1} onClick={() => setPage(page - 1)}>Previous page</button> <span>Page {page}</span> <button disabled={busy || page * 20 >= total} onClick={() => setPage(page + 1)}>Next page</button>
         </section><section><h2>{selected ? "Edit property" : "Add property"}</h2>
             <form onSubmit={save}><fieldset disabled={busy || conflict}>
-                {fields.map(([key, label, maxLength, required]) => <label key={key}>{label}<input name={key} value={form[key]} maxLength={maxLength} required={required} autoComplete="off" onChange={event => {setForm({...form, [key]: key === "countryCode" ? event.target.value.toUpperCase() : event.target.value}); setDirty(true);}}/></label>)}
+                {fields.map(([key, label, maxLength, required]) => <label key={key}>{label}{required && <span className="required-marker" aria-hidden="true"> *</span>}<input name={key} value={form[key]} maxLength={maxLength} required={required} autoComplete="off" onChange={event => {setForm({...form, [key]: key === "countryCode" ? event.target.value.toUpperCase() : event.target.value}); setDirty(true);}}/></label>)}
                 <button type="submit">{selected ? "Save changes" : "Add property"}</button>
             </fieldset></form>
             {selected && <><button disabled={busy || conflict} onClick={archive}>Archive property</button> <button disabled={busy} onClick={() => { if (!dirty || window.confirm("Discard unsaved changes?")) reset(); }}>Start new property</button></>}

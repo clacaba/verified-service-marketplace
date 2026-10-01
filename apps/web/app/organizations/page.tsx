@@ -62,8 +62,8 @@ export default function Organizations() {
         <Link href="/account">Your account</Link><h1>Organizations</h1>
         {!user ? <><p>{message || "Loading your organizations…"}</p><Link href="/login">Sign in</Link></> : <>
             {user.capabilities.includes("Provider") && <section><h2>Create a provider organization</h2><form onSubmit={create}>
-                <label htmlFor="organizationName">Organization name</label><input id="organizationName" name="name" required maxLength={150} />
-                <label htmlFor="providerType">Provider type</label><select id="providerType" name="providerType"><option value="Individual">Independent provider</option><option value="Business">Provider company</option></select>
+                <label htmlFor="organizationName">Organization name <span className="required-marker" aria-hidden="true">*</span></label><input id="organizationName" name="name" required maxLength={150} />
+                <label htmlFor="providerType">Provider type <span className="required-marker" aria-hidden="true">*</span></label><select id="providerType" required name="providerType"><option value="Individual">Independent provider</option><option value="Business">Provider company</option></select>
                 <button disabled={busy}>Create organization</button>
             </form></section>}
             {user.memberships.length === 0 ? <p>You do not belong to any organizations yet. Providers can create one; invited staff should follow their email invitation after verifying their email.</p> : <section>
@@ -71,7 +71,7 @@ export default function Organizations() {
                 <Link href={"/provider-profile?organizationId=" + selected}>Provider profile draft</Link> <Link href={"/verification?organizationId=" + selected}>Verification evidence</Link> <Link href={"/catalog?organizationId=" + selected}>Service catalog</Link> <Link href="/availability">Provider availability</Link> <Link href="/bookings">Bookings</Link>
                 <p>Your role: {membership?.role}. Permissions: {membership?.permissions.join(", ")}.</p>
                 {owner ? <>
-                    <h2>Invite staff</h2><form onSubmit={invite}><label htmlFor="staffEmail">Staff email</label><input id="staffEmail" name="email" type="email" required maxLength={254} /><p>Staff can read organization information and manage bookings; catalog, profile, availability, and membership edits remain Owner-only.</p><button disabled={busy}>Send invitation</button></form>
+                    <h2>Invite staff</h2><form onSubmit={invite}><label htmlFor="staffEmail">Staff email <span className="required-marker" aria-hidden="true">*</span></label><input id="staffEmail" name="email" type="email" required maxLength={254} /><p>Staff can read organization information and manage bookings; catalog, profile, availability, and membership edits remain Owner-only.</p><button disabled={busy}>Send invitation</button></form>
                     <h2>Members</h2>{loadingMembers ? <p>Loading members…</p> : <ul>{members.map(member => <li key={member.userId}><span>{member.name} — {member.email} · {member.role} · {member.active ? "Active" : "Inactive"}</span>{member.role !== "Owner" && member.active && <button disabled={busy} onClick={() => deactivate(member)}>Deactivate</button>}</li>)}</ul>}
                     <p>Page {page} · {total} members</p><button disabled={page === 1 || loadingMembers} onClick={() => setPage(page - 1)}>Previous</button> <button disabled={page * 20 >= total || loadingMembers} onClick={() => setPage(page + 1)}>Next</button>
                 </> : <p>Your staff membership does not permit inviting or removing members.</p>}

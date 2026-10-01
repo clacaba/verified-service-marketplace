@@ -89,12 +89,12 @@ export default function Catalog() {
         {owner && <button disabled={busy} onClick={() => {if (dirty && !window.confirm("Discard unsaved edits?")) return; setSelected(null); setInput({...blank, categoryId: categories[0]?.id ?? ""}); setDirty(false); setConflict(false); setEtag(""); setMessage("");}}>New listing</button>}</section>
         {(owner || selected) && <section><h2>{selected ? selected.title : "Create a listing"}</h2><p>{selected ? "Status: " + selected.status : "New private draft"} · {dirty ? "Unsaved changes" : "Saved"}</p>
         <form onSubmit={save}><fieldset disabled={busy || !owner || conflict || selected?.status === "Archived"}>
-            <label htmlFor="title">Title</label><input id="title" required maxLength={150} value={input.title} onChange={e => change({title: e.target.value})}/>
-            <label htmlFor="description">Description</label><textarea id="description" required maxLength={4000} rows={5} value={input.description} onChange={e => change({description: e.target.value})}/>
-            <label htmlFor="category">Category</label><select id="category" required value={input.categoryId} onChange={e => change({categoryId: e.target.value})}><option value="">Choose a provider category</option>{categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-            <label htmlFor="price">Price in centavos (100 = PHP 1)</label><input id="price" type="number" required min={1} max={100000000} step={1} value={input.priceMinor} onChange={e => change({priceMinor: Number(e.target.value)})}/><small>{price(input.priceMinor)}</small>
-            <label htmlFor="duration">Duration in minutes</label><input id="duration" type="number" required min={15} max={1440} step={15} value={input.durationMinutes} onChange={e => change({durationMinutes: Number(e.target.value)})}/>
-            <label htmlFor="area">Service area</label><input id="area" required maxLength={250} value={input.serviceArea} onChange={e => change({serviceArea: e.target.value})}/>
+            <label htmlFor="title">Title <span className="required-marker" aria-hidden="true">*</span></label><input id="title" required maxLength={150} value={input.title} onChange={e => change({title: e.target.value})}/>
+            <label htmlFor="description">Description <span className="required-marker" aria-hidden="true">*</span></label><textarea id="description" required maxLength={4000} rows={5} value={input.description} onChange={e => change({description: e.target.value})}/>
+            <label htmlFor="category">Category <span className="required-marker" aria-hidden="true">*</span></label><select id="category" required value={input.categoryId} onChange={e => change({categoryId: e.target.value})}><option value="">Choose a provider category</option>{categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+            <label htmlFor="price">Price in centavos (100 = PHP 1) <span className="required-marker" aria-hidden="true">*</span></label><input id="price" type="number" required min={1} max={100000000} step={1} value={input.priceMinor} onChange={e => change({priceMinor: Number(e.target.value)})}/><small>{price(input.priceMinor)}</small>
+            <label htmlFor="duration">Duration in minutes <span className="required-marker" aria-hidden="true">*</span></label><input id="duration" type="number" required min={15} max={1440} step={15} value={input.durationMinutes} onChange={e => change({durationMinutes: Number(e.target.value)})}/>
+            <label htmlFor="area">Service area <span className="required-marker" aria-hidden="true">*</span></label><input id="area" required maxLength={250} value={input.serviceArea} onChange={e => change({serviceArea: e.target.value})}/>
             {owner && <button disabled={!!selected && !dirty}>Save draft</button>}
         </fieldset></form>
         {selected && <section aria-label="Listing images"><h3>Service images ({selected.images.length}/5)</h3>
@@ -106,9 +106,9 @@ export default function Catalog() {
                 {owner && selected.status !== "Archived" && <button disabled={busy || dirty || conflict} onClick={() => removeImage(image.id)}>Remove image</button>}
             </figure>)}
             {owner && selected.status !== "Archived" && <form onSubmit={uploadImage}><fieldset disabled={busy || dirty || conflict || selected.images.length >= 5}>
-                <label htmlFor="serviceImage">JPEG/PNG image (maximum 5 MiB)</label><input id="serviceImage" name="file" type="file" accept="image/jpeg,image/png" required />
-                <label htmlFor="imageAlt">Accessible image description</label><input id="imageAlt" name="altText" required maxLength={150}/>
-                <label><input name="demoAcknowledged" type="checkbox" value="true" required/> This is a fictional service photo, not private evidence or personal information.</label>
+                <label htmlFor="serviceImage">JPEG/PNG image (maximum 5 MiB) <span className="required-marker" aria-hidden="true">*</span></label><input id="serviceImage" name="file" type="file" accept="image/jpeg,image/png" required />
+                <label htmlFor="imageAlt">Accessible image description <span className="required-marker" aria-hidden="true">*</span></label><input id="imageAlt" name="altText" required maxLength={150}/>
+                <label><input name="demoAcknowledged" type="checkbox" value="true" required/> This is a fictional service photo, not private evidence or personal information. <span className="required-marker" aria-hidden="true">*</span></label>
                 <p>Maximum source size: 4096 pixels per side and 12 megapixels; static images only. We resize to 1600 pixels, remove metadata, and scan for malware. Save text edits before uploading.</p>
                 <button>Upload processed image</button>
             </fieldset></form>}

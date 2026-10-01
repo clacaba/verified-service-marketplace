@@ -88,9 +88,9 @@ export default function VerificationPage() {
                     {owner && application.status === "Draft" && <button disabled={busy} onClick={() => remove(document)}>Remove</button>}
                 </li>)}</ul>}
                 {owner && application.status === "Draft" && <><form onSubmit={upload}>
-                    <label htmlFor="evidenceType">Evidence type</label><select id="evidenceType" name="evidenceType" disabled={busy}>{["Identity", "BusinessRegistration", "TradeQualification"].map(type => <option key={type}>{type}</option>)}</select>
-                    <label htmlFor="evidenceFile">Fictional evidence file</label><input id="evidenceFile" name="file" type="file" accept=".pdf,.jpg,.jpeg,.png" required disabled={busy} />
-                    <label><input type="checkbox" name="demoAcknowledged" value="true" required disabled={busy} /> I confirm this is fictional demonstration evidence.</label>
+                    <label htmlFor="evidenceType">Evidence type <span className="required-marker" aria-hidden="true">*</span></label><select id="evidenceType" required name="evidenceType" disabled={busy}>{["Identity", "BusinessRegistration", "TradeQualification"].map(type => <option key={type}>{type}</option>)}</select>
+                    <label htmlFor="evidenceFile">Fictional evidence file <span className="required-marker" aria-hidden="true">*</span></label><input id="evidenceFile" name="file" type="file" accept=".pdf,.jpg,.jpeg,.png" required disabled={busy} />
+                    <label><input type="checkbox" name="demoAcknowledged" value="true" required disabled={busy} /> I confirm this is fictional demonstration evidence. <span className="required-marker" aria-hidden="true">*</span></label>
                     <button disabled={busy || !etag}>Upload private evidence</button>
                 </form>
                 {!user.emailConfirmed && <p>Verify your email before submitting.</p>}
