@@ -33,7 +33,9 @@ Source: [Master plan](../service-booking-marketplace-plan.md), sections 29–32.
 - [x] PROVIDER-01 draft slice: Persistent private profiles, active categories, Owner editing/Staff read-only, version conflicts, audit, migration/backfill, and editor UI.
 - [ ] PROVIDER-01 follow-ups: Authorized image uploads and invalidation of future verification checks on material profile changes.
 - [ ] Verify profile migrations and browser save/reload flow with Docker/PostgreSQL.
-- [ ] VERIFY-01: Private evidence upload, immutable submissions, and revisions.
+- [x] VERIFY-01 upload/submission slice: Private S3 storage, fail-closed malware scanning, demo evidence policy, Owner uploads, authorized download grants, immutable submissions, audit, and retention/deletion queue.
+- [ ] VERIFY-01 revisions: Corrected drafts after administrative rejection/information requests (depends on review workflow).
+- [ ] Verify PostgreSQL/MinIO/ClamAV and browser multipart/download behavior with Docker.
 - [ ] VERIFY-02: Administrative decisions, concurrency, audit, and reliable notifications.
 - [ ] VERIFY-03: Precise current public badges and demo disclosure.
 - [ ] Demonstrate the entire provider-registration-to-public-badge journey with fictional data.

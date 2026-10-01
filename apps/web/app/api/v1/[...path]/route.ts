@@ -1,13 +1,61 @@
 import type { NextRequest } from "next/server";
 export const runtime = "nodejs";
-const permitted = new Set(["GET auth/csrf","POST auth/register","POST auth/login","POST auth/logout","POST auth/verify-email","POST auth/resend-verification","GET users/me","GET categories"]);
-async function forward(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
- const {path}=await context.params;const route=path.join("/");
- const organizationRoute = (request.method==="POST"&&route==="organizations") || (request.method==="POST"&&route==="invitations/accept") || (request.method==="GET"&&/^organizations\/[0-9a-f-]{36}(\/members)?$/i.test(route)) || (request.method==="POST"&&/^organizations\/[0-9a-f-]{36}\/invitations$/i.test(route)) || (request.method==="DELETE"&&/^organizations\/[0-9a-f-]{36}\/members\/[0-9a-f-]{36}$/i.test(route));
- const profileRoute = ["GET", "PUT"].includes(request.method) && /^organizations\/[0-9a-f-]{36}\/provider-profile$/i.test(route);
- if(!permitted.has(request.method+" "+route)&&!organizationRoute&&!profileRoute)return Response.json({title:"Resource unavailable"},{status:404});
- if(request.method!=="GET"&&request.headers.get("origin")!==(process.env.WEB_ORIGIN??"http://localhost:3000"))return Response.json({title:"Invalid request origin"},{status:403});
- const headers=new Headers();for(const name of ["cookie","content-type","x-csrf-token","if-match"]){const value=request.headers.get(name);if(value)headers.set(name,value);}
- try{const upstream=await fetch(new URL("/api/v1/"+route+request.nextUrl.search,process.env.API_BASE_URL??"http://localhost:5080"),{method:request.method,headers,body:request.method==="GET"?undefined:await request.text(),cache:"no-store",redirect:"manual",signal:AbortSignal.timeout(10000)});const responseHeaders=new Headers({"Cache-Control":"no-store"});for(const name of ["content-type","retry-after","etag"]){const value=upstream.headers.get(name);if(value)responseHeaders.set(name,value);}for(const cookie of upstream.headers.getSetCookie())responseHeaders.append("Set-Cookie",cookie);return new Response(upstream.status===204?null:await upstream.text(),{status:upstream.status,headers:responseHeaders});}catch{return Response.json({title:"The service is temporarily unavailable."},{status:503});}
+const permitted = new Set(["GET auth/csrf", "POST auth/register", "POST auth/login", "POST auth/logout", "POST auth/verify-email", "POST auth/resend-verification", "GET users/me", "GET categories"]);
+const uuid = "[0-9a-f-]{36}";
+const profile = new RegExp("^organizations/" + uuid + "/provider-profile$", "i");
+const organization = new RegExp("^organizations/" + uuid + "(/members)?$", "i");
+const invitations = new RegExp("^organizations/" + uuid + "/invitations$", "i");
+const member = new RegExp("^organizations/" + uuid + "/members/" + uuid + "$", "i");
+const verificationList = new RegExp("^organizations/" + uuid + "/verifications$", "i");
+const verificationDetail = new RegExp("^organizations/" + uuid + "/verifications/" + uuid + "$", "i");
+const verificationMutation = new RegExp("^organizations/" + uuid + "/verifications/" + uuid + "/(documents|submit)$", "i");
+const documentRemoval = new RegExp("^organizations/" + uuid + "/verifications/" + uuid + "/documents/" + uuid + "$", "i");
+const documentAccess = new RegExp("^verification-documents/" + uuid + "/access$", "i");
+const documentContent = new RegExp("^verification-documents/" + uuid + "/content$", "i");
+class PayloadTooLarge extends Error {}
+async function readBody(request: NextRequest): Promise<ArrayBuffer | undefined> {
+    if (request.method === "GET" || !request.body) return undefined;
+    const limit = 11 * 1024 * 1024;
+    if (Number(request.headers.get("content-length") ?? 0) > limit) throw new PayloadTooLarge();
+    const reader = request.body.getReader(); const chunks: Uint8Array[] = []; let total = 0;
+    try {
+        for (;;) {
+            const next = await reader.read(); if (next.done) break;
+            total += next.value.byteLength;
+            if (total > limit) { await reader.cancel(); throw new PayloadTooLarge(); }
+            chunks.push(next.value);
+        }
+    } finally { reader.releaseLock(); }
+    const bytes = new Uint8Array(total); let offset = 0;
+    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+    return bytes.buffer;
 }
-export const GET=forward;export const POST=forward;export const DELETE=forward;export const PUT=forward;
+async function forward(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+    const { path } = await context.params; const route = path.join("/"); const method = request.method;
+    const allowed = permitted.has(method + " " + route)
+        || (method === "POST" && (route === "organizations" || route === "invitations/accept" || invitations.test(route) || verificationList.test(route) || verificationMutation.test(route) || documentAccess.test(route)))
+        || (method === "GET" && (organization.test(route) || verificationList.test(route) || verificationDetail.test(route) || documentContent.test(route)))
+        || (["GET", "PUT"].includes(method) && profile.test(route))
+        || (method === "DELETE" && (member.test(route) || documentRemoval.test(route)));
+    if (!allowed) return Response.json({ title: "Resource unavailable" }, { status: 404 });
+    if (method !== "GET" && request.headers.get("origin") !== (process.env.WEB_ORIGIN ?? "http://localhost:3000")) return Response.json({ title: "Invalid request origin" }, { status: 403 });
+    const headers = new Headers();
+    for (const name of ["cookie", "content-type", "x-csrf-token", "if-match", "x-evidence-access"]) {
+        const value = request.headers.get(name); if (value) headers.set(name, value);
+    }
+    try {
+        const body = await readBody(request);
+        const upstream = await fetch(new URL("/api/v1/" + route + request.nextUrl.search, process.env.API_BASE_URL ?? "http://localhost:5080"), {
+            method, headers, body, cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(120000)
+        });
+        const responseHeaders = new Headers({ "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" });
+        for (const name of ["content-type", "retry-after", "etag", "content-disposition", "x-content-type-options", "content-security-policy"]) {
+            const value = upstream.headers.get(name); if (value) responseHeaders.set(name, value);
+        }
+        for (const cookie of upstream.headers.getSetCookie()) responseHeaders.append("Set-Cookie", cookie);
+        return new Response(upstream.status === 204 ? null : await upstream.arrayBuffer(), { status: upstream.status, headers: responseHeaders });
+    } catch (error) {
+        return Response.json({ title: error instanceof PayloadTooLarge ? "Upload request exceeds 11 MiB." : "The service is temporarily unavailable." }, { status: error instanceof PayloadTooLarge ? 413 : 503 });
+    }
+}
+export const GET = forward; export const POST = forward; export const DELETE = forward; export const PUT = forward;

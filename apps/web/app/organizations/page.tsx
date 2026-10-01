@@ -68,7 +68,7 @@ export default function Organizations() {
             </form></section>}
             {user.memberships.length === 0 ? <p>You do not belong to any organizations yet. Providers can create one; invited staff should follow their email invitation after verifying their email.</p> : <section>
                 <label htmlFor="activeOrganization">Active organization</label><select id="activeOrganization" value={selected} onChange={event => { setSelected(event.target.value); setPage(1); setMessage(""); }}>{user.memberships.map(item => <option key={item.organizationId} value={item.organizationId}>{item.name} ({item.role})</option>)}</select>
-                <Link href={"/provider-profile?organizationId=" + selected}>Provider profile draft</Link>
+                <Link href={"/provider-profile?organizationId=" + selected}>Provider profile draft</Link> <Link href={"/verification?organizationId=" + selected}>Verification evidence</Link>
                 <p>Your role: {membership?.role}. Permissions: {membership?.permissions.join(", ")}.</p>
                 {owner ? <>
                     <h2>Invite staff</h2><form onSubmit={invite}><label htmlFor="staffEmail">Staff email</label><input id="staffEmail" name="email" type="email" required maxLength={254} /><p>Staff can read organization information; owner management actions remain restricted.</p><button disabled={busy}>Send invitation</button></form>

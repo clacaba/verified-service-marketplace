@@ -1983,14 +1983,7 @@
             }
           },
           "413": {
-            "description": "File too large",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
+            "description": "File exceeds 10 MiB or request exceeds 11 MiB"
           },
           "415": {
             "description": "Unsupported content",
@@ -2030,6 +2023,9 @@
                 "description": "Delay in seconds"
               }
             }
+          },
+          "503": {
+            "description": "Storage or malware scanner unavailable; no document accepted."
           }
         },
         "requestBody": {
@@ -2040,7 +2036,8 @@
                 "type": "object",
                 "required": [
                   "file",
-                  "evidenceType"
+                  "evidenceType",
+                  "demoAcknowledged"
                 ],
                 "properties": {
                   "file": {
@@ -2050,7 +2047,18 @@
                   },
                   "evidenceType": {
                     "type": "string",
-                    "minLength": 1
+                    "enum": [
+                      "Identity",
+                      "BusinessRegistration",
+                      "TradeQualification"
+                    ]
+                  },
+                  "demoAcknowledged": {
+                    "type": "string",
+                    "enum": [
+                      "true"
+                    ],
+                    "description": "Mandatory confirmation that the document is fictional demo evidence."
                   }
                 }
               }
@@ -3634,6 +3642,122 @@
           }
         }
       }
+    },
+    "/api/v1/verification-documents/{documentId}/content": {
+      "get": {
+        "operationId": "downloadVerificationDocument",
+        "summary": "Download private verification evidence",
+        "tags": [
+          "Verification"
+        ],
+        "description": "Requires original authenticated session, expiring X-Evidence-Access grant, current active membership, and unexpired document. Audited attachment download.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Evidence-Access",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Private attachment; no-store, nosniff, sandbox. No ranges.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business rule conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "Delay in seconds"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4110,10 +4234,13 @@
         "required": [
           "id",
           "evidenceType",
-          "filename",
+          "fileName",
           "contentType",
-          "sizeBytes",
-          "uploadedAt"
+          "size",
+          "uploadedAt",
+          "expiresAt",
+          "scanStatus",
+          "simulated"
         ],
         "properties": {
           "id": {
@@ -4122,9 +4249,13 @@
           },
           "evidenceType": {
             "type": "string",
-            "minLength": 1
+            "enum": [
+              "Identity",
+              "BusinessRegistration",
+              "TradeQualification"
+            ]
           },
-          "filename": {
+          "fileName": {
             "type": "string"
           },
           "contentType": {
@@ -4135,14 +4266,31 @@
               "image/png"
             ]
           },
-          "sizeBytes": {
+          "size": {
             "type": "integer",
             "format": "int64",
+            "minimum": 1,
             "maximum": 10485760
           },
           "uploadedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "scanStatus": {
+            "type": "string",
+            "enum": [
+              "Clean"
+            ]
+          },
+          "simulated": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
           }
         }
       },
@@ -4265,7 +4413,7 @@
           },
           "submissionVersion": {
             "type": "integer",
-            "minimum": 1
+            "minimum": 0
           },
           "submittedAt": {
             "type": "string",
@@ -4285,8 +4433,30 @@
             }
           },
           "version": {
-            "type": "integer",
-            "format": "int64"
+            "type": "string",
+            "format": "uuid"
+          },
+          "requiredEvidence": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Identity",
+                "BusinessRegistration",
+                "TradeQualification"
+              ]
+            }
+          },
+          "submittedSnapshot": {
+            "type": "object",
+            "nullable": true,
+            "description": "Immutable private profile/evidence snapshot, populated only after submission."
+          },
+          "simulated": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
           }
         }
       },
@@ -4294,12 +4464,17 @@
         "type": "object",
         "required": [
           "url",
+          "token",
           "expiresAt"
         ],
         "properties": {
           "url": {
             "type": "string",
-            "format": "uri"
+            "description": "Relative same-origin authenticated content endpoint; not a public object URL."
+          },
+          "token": {
+            "type": "string",
+            "description": "Session-bound expiring grant. Send only as X-Evidence-Access, never in a URL."
           },
           "expiresAt": {
             "type": "string",

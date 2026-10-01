@@ -1,6 +1,6 @@
 # Milestone A API contract draft
 
-Status: Authentication, `/users/me`, and organization/membership routes are implemented. Provider profile draft and category routes are also implemented. Provider-verification routes remain design contracts. The matching machine-readable contract is `milestone-a.openapi.json`.
+Status: Authentication, `/users/me`, and organization/membership routes are implemented. Provider profile draft and category routes are also implemented. Verification draft/history, private documents, access/download, and submission routes are implemented. Administrator review, revisions, decisions, notifications, and public badges remain design contracts. The matching machine-readable contract is `milestone-a.openapi.json`.
 
 Base path: `/api/v1`. JSON uses camelCase; UUID identifiers and ISO-8601 UTC timestamps. Document bytes use multipart uploads, never JSON/base64.
 
@@ -37,7 +37,7 @@ Base path: `/api/v1`. JSON uses camelCase; UUID identifiers and ISO-8601 UTC tim
 | POST `/organizations/{organizationId}/verifications` | Verification write permission | Create draft for provider; 201 with draft ID and ETag. |
 | GET `/organizations/{organizationId}/verifications` | Verification read permission | Own application history, paginated. |
 | GET `/organizations/{organizationId}/verifications/{applicationId}` | Verification read permission | Private application summary and ETag. |
-| POST `/organizations/{organizationId}/verifications/{applicationId}/documents` | Verification write permission | Multipart `file`, `evidenceType`; editable draft only, If-Match; 201 metadata/new ETag. |
+| POST `/organizations/{organizationId}/verifications/{applicationId}/documents` | Verification write permission | Multipart `file`, `evidenceType`, `demoAcknowledged=true`; editable draft only, If-Match; 201 metadata/new ETag. |
 | DELETE `/organizations/{organizationId}/verifications/{applicationId}/documents/{documentId}` | Verification write permission | Editable draft only, If-Match; 204/new ETag. |
 | POST `/organizations/{organizationId}/verifications/{applicationId}/submit` | Verified email + verification write | If-Match; validate complete evidence; 200 immutable submitted version. |
 | POST `/organizations/{organizationId}/verifications/{applicationId}/revisions` | Verification write permission | If-Match; rejected/information-request application only; create linked editable draft; 201. |
@@ -45,7 +45,8 @@ Base path: `/api/v1`. JSON uses camelCase; UUID identifiers and ISO-8601 UTC tim
 | GET `/admin/verifications/{applicationId}` | Reviewer | Private review details and ETag. |
 | POST `/admin/verifications/{applicationId}/start-review` | Reviewer | If-Match; Submitted → UnderReview; 200. |
 | POST `/admin/verifications/{applicationId}/decisions` | Reviewer | If-Match; decision/checks/reason; 200 updated application. |
-| POST `/verification-documents/{documentId}/access` | Authorized provider member or reviewer | Short-lived private retrieval URL with expiry; audit access; no-store. |
+| POST `/verification-documents/{documentId}/access` | Authorized provider member or reviewer | Session-bound relative retrieval URL plus token for X-Evidence-Access; expiry; audit access; no-store. |
+| GET `/verification-documents/{documentId}/content` | Original session + X-Evidence-Access grant + current membership | Private attachment download; expired/invalid grants or unauthorized documents return 404. |
 | GET `/providers/{providerId}` | Anonymous | Approved public projection and current badges; otherwise 404. |
 | GET `/notifications` | Session | Own notifications, paginated. |
 | PATCH `/notifications/{notificationId}` | Recipient session | `{ read: true }`; 204. |
@@ -56,13 +57,13 @@ All authentication POSTs, including anonymous registration, login, verification,
 
 `ProviderProfile`: `id`, `organizationId`, `displayName`, `providerType` (Individual/Business), `biography`, `categoryIds`, `serviceArea`, optional `imageId`, `version`. Draft limits: display name 1–150 characters, biography up to 4,000, service area up to 250, up to 20 distinct active categories. Drafts may omit biography, area, and categories. `version` is a UUID and is returned as a quoted strong ETag; GET and successful PUT return ETag. PUT requires the exact latest If-Match (428 if missing, 412 if stale). `status` is always Draft; `readyForVerification` means basic fields are complete, not approved or published. Non-null imageId is rejected until authorized image uploads exist. Profile responses and browser proxy responses are no-store.
 
-`VerificationApplication`: `id`, `providerId`, `organizationId`, `status`, `submissionVersion`, nullable `submittedAt`, `documents`, `decisions`, `version`. Documents expose only private authorized metadata: ID, evidence type, safe filename, content type, size, uploaded time. Object keys never leave storage services.
+`VerificationApplication`: `id`, `providerId`, `organizationId`, `status`, `submissionVersion` (0 draft/1 submitted), nullable `submittedAt`, `documents`, `decisions`, UUID `version`, `requiredEvidence`, nullable `submittedSnapshot`, and `simulated=true`. Documents expose only private authorized metadata: ID, evidence type, safe filename, content type, size, uploaded time. Object keys never leave storage services.
 
 `DecisionRequest`: `decision` (Approved/Rejected/AdditionalInformationRequired), `reason`, `checks` containing `type` and optional `expiresAt`. Approval requires all configured evidence/checks. Rejection and information requests require a reason of 1–2,000 characters. Demo simulation flags are server-controlled.
 
 `PublicProvider`: `id`, `displayName`, `biography`, public image, categories, service area, badges. Each badge exposes `type`, `simulated`, optional `expiresAt`, and explanatory text. Exclude membership, private applications, documents, emails, and sensitive identifiers.
 
-Proposed document policy: PDF/JPEG/PNG, 10 MiB per file; validate actual content, reject unsafe files, generate private storage keys, and use a configured retention policy. Final storage access duration and required evidence configuration must be set before upload implementation.
+Implemented demo document policy: PDF/JPEG/PNG, 10 MiB per file, one file per request, at most 20 per application. Validate MIME against signatures/end markers and require a clean ClamAV scan before private storage. Format detection is not full structural parsing. Metadata uses `fileName`, `size`, `expiresAt`, and `scanStatus=Clean`; it never exposes object keys. Default draft/submitted file retention is 30/90 days; access grants expire in 60 seconds and are bound to the authenticated session. Required types depend on Individual/Business and Plumbing/Electrical categories; see [private verification evidence](../architecture/private-verification-evidence.md). Rules are fictional demo defaults. A submitted snapshot is locked; draft evidence may be removed. Corrected revisions depend on the future review feature.
 
 ## Atomic state changes
 

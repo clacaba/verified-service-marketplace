@@ -20,6 +20,10 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Copy .env.example to .env}
     ports: ["127.0.0.1:9000:9000", "127.0.0.1:9001:9001"]
     volumes: [storage-data:/data]
+  scanner:
+    image: clamav/clamav:1.4
+    ports: ["127.0.0.1:3310:3310"]
+    volumes: [scanner-data:/var/lib/clamav]
   mailpit:
     image: axllent/mailpit:v1.31.3
     ports: ["127.0.0.1:8025:8025", "127.0.0.1:1025:1025"]
@@ -35,6 +39,13 @@ services:
       Email__Port: "1025"
       Web__PublicOrigin: http://localhost:3000
       DataProtection__KeyPath: /app/keys
+      Storage__Endpoint: http://storage:9000
+      Storage__AccessKey: ${MINIO_ROOT_USER}
+      Storage__SecretKey: ${MINIO_ROOT_PASSWORD}
+      Storage__Bucket: verification-evidence
+      Scanner__Host: scanner
+      Scanner__Port: "3310"
+      Evidence__RetentionEnabled: "true"
       ConnectionStrings__Marketplace: Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
     ports: ["127.0.0.1:5080:8080"]
     volumes: [api-keys:/app/keys]
@@ -54,3 +65,4 @@ volumes:
   postgres-data:
   storage-data:
   api-keys:
+  scanner-data:

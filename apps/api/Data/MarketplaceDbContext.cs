@@ -1,3 +1,4 @@
+using Marketplace.Api.Verification;
 using Marketplace.Api.Providers;
 using Marketplace.Api.Identity;
 using Marketplace.Api.Organizations;
@@ -16,9 +17,28 @@ public sealed class MarketplaceDbContext(DbContextOptions<MarketplaceDbContext> 
     public DbSet<ProviderProfile> ProviderProfiles => Set<ProviderProfile>();
     public DbSet<ServiceCategory> ServiceCategories => Set<ServiceCategory>();
     public DbSet<ProviderCategory> ProviderCategories => Set<ProviderCategory>();
+    public DbSet<VerificationApplication> VerificationApplications => Set<VerificationApplication>();
+    public DbSet<VerificationDocument> VerificationDocuments => Set<VerificationDocument>();
+    public DbSet<EvidenceDeletion> EvidenceDeletions => Set<EvidenceDeletion>();
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.Entity<VerificationApplication>().Property(x => x.Version).IsConcurrencyToken();
+        builder.Entity<VerificationApplication>().Property(x => x.Status).HasMaxLength(40);
+        builder.Entity<VerificationApplication>().HasIndex(x => x.OrganizationId).IsUnique().HasFilter("\"IsActive\" = TRUE");
+        builder.Entity<VerificationApplication>().HasOne<Organization>().WithMany().HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<VerificationApplication>().HasOne<ProviderProfile>().WithMany().HasForeignKey(x => x.ProviderId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<VerificationApplication>().HasMany(x => x.Documents).WithOne().HasForeignKey(x => x.ApplicationId);
+        builder.Entity<VerificationDocument>().Property(x => x.Version).IsConcurrencyToken();
+        builder.Entity<VerificationDocument>().Property(x => x.ObjectKey).HasMaxLength(200);
+        builder.Entity<VerificationDocument>().HasIndex(x => x.ObjectKey).IsUnique();
+        builder.Entity<VerificationDocument>().HasIndex(x => x.ExpiresAt);
+        builder.Entity<VerificationDocument>().Property(x => x.FileName).HasMaxLength(120);
+        builder.Entity<VerificationDocument>().Property(x => x.ContentType).HasMaxLength(50);
+        builder.Entity<VerificationDocument>().Property(x => x.EvidenceType).HasMaxLength(40);
+        builder.Entity<VerificationDocument>().Property(x => x.Sha256).HasMaxLength(64);
+        builder.Entity<EvidenceDeletion>().Property(x => x.ObjectKey).HasMaxLength(200);
+        builder.Entity<EvidenceDeletion>().HasIndex(x => x.DueAt);
         builder.Entity<ProviderProfile>().HasIndex(x => x.OrganizationId).IsUnique();
         builder.Entity<ProviderProfile>().HasOne<Organization>().WithMany().HasForeignKey(x => x.OrganizationId);
         builder.Entity<ProviderProfile>().Property(x => x.DisplayName).HasMaxLength(150);

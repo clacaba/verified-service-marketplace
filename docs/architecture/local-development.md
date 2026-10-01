@@ -1,6 +1,6 @@
 # Local development foundation
 
-Status: Foundation and initial human authentication implemented. Organizations and provider verification remain planned.
+Status: Foundation, authentication, organizations, profile drafts, and private evidence uploads/submissions implemented. Administrative review and badges remain planned.
 
 ## Prerequisites
 
@@ -16,18 +16,22 @@ npm install
 docker compose up --build
 ```
 
-Open http://localhost:3000. The page displays whether the API responds. API liveness: http://localhost:5080/health/live. Database readiness: http://localhost:5080/health/ready. MinIO console: http://localhost:9001. Local example credentials are in your ignored .env file. Storage is private by default; bucket creation and application storage integration come with verification uploads.
+Open http://localhost:3000. The page displays whether the API responds. API liveness: http://localhost:5080/health/live. Database readiness: http://localhost:5080/health/ready. MinIO console: http://localhost:9001. Local example credentials are in your ignored .env file. Private evidence uses the verification-evidence bucket created on first storage operation in Development. Do not enable anonymous access. ClamAV must be ready for uploads to succeed; first signature download may take time.
 
 Use `docker compose down` to stop while preserving data volumes. This Compose configuration is for local development only.
 
 ## Run applications on the host
 
-Start dependencies with `docker compose up -d postgres storage mailpit`. In a PowerShell terminal, set the connection string using the values from .env:
+Start dependencies with `docker compose up -d postgres storage mailpit scanner`. In a PowerShell terminal, set the connection string using the values from .env:
 
 ```powershell
 $env:ConnectionStrings__Marketplace = 'Host=localhost;Database=marketplace;Username=marketplace;Password=local-development-only'
 $env:ASPNETCORE_ENVIRONMENT = 'Development'
 $env:Email__Enabled = 'true'
+# Match these local-only credentials to your ignored .env values:
+$env:Storage__AccessKey = 'marketplace-local'
+$env:Storage__SecretKey = 'local-storage-development-only'
+$env:Evidence__RetentionEnabled = 'true'
 dotnet tool restore
 dotnet ef database update --project apps/api
 dotnet run --project apps/api --urls http://localhost:5080
@@ -54,7 +58,7 @@ The tests distinguish liveness from readiness and use in-memory SQLite for authe
 4. Click Confirm email address, then sign in at `/login`.
 5. View your verification status at `/account`, resend verification if needed, and sign out.
 
-Accounts can sign in before email verification to prepare onboarding drafts. Verified-email checks for submissions/bookings will be added with those endpoints. Administrative registration is unavailable. Organization memberships remain empty until the organization feature is implemented.
+Accounts can sign in before email verification to prepare onboarding drafts. Evidence submission requires verified email. Booking checks arrive with booking. Administrative registration is unavailable. Create organizations at /organizations and follow the profile and verification links.
 
 Browser calls use an allowlisted Next.js BFF route, no-store responses, HttpOnly cookies, an Origin check, and a CSRF token fetched before each mutation. All authentication POSTs, including login and registration, require CSRF. Verification tokens expire after two hours and are single-use. Sessions expire after eight hours; logout revokes the current session in the database, preventing cookie replay. Login failures trigger account lockout; authentication traffic has a conservative 20-request/minute per-backend-IP limit. Requests proxied by the BFF currently share its IP, so trusted per-user/client rate partitioning is required before public deployment.
 
@@ -65,3 +69,8 @@ Mailpit captures local messages only. The retrying email worker is opt-in throug
 One Next.js application initially hosts the public/customer/provider surfaces and will later host authorized admin routes. A second frontend can be extracted if operational requirements justify it. Module folders remain planning boundaries until actual module implementations are introduced. The backend is a modular monolith composition root with PostgreSQL integration and problem-details error handling.
 
 Dependencies are pinned in package manifests and lockfiles. Container tags are explicit development defaults, not immutable digests; pin reviewed digests before production deployment.
+
+
+## Try evidence submission
+
+See [private verification evidence](private-verification-evidence.md) for the complete walkthrough, fictional evidence rules, retention defaults, short-lived private downloads, and remaining production hardening. Backend tests use SQLite and scanner/storage doubles; actual Docker/PostgreSQL/MinIO/ClamAV validation remains pending.
