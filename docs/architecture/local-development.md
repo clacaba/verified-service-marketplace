@@ -33,6 +33,8 @@ $env:Storage__AccessKey = 'marketplace-local'
 $env:Storage__SecretKey = 'local-storage-development-only'
 $env:Evidence__RetentionEnabled = 'true'
 $env:ServiceImages__CleanupEnabled = 'true'
+$env:Booking__ExpiryEnabled = 'true'
+$env:Booking__PendingMinutes = '60'
 dotnet tool restore
 dotnet ef database update --project apps/api
 dotnet run --project apps/api --urls http://localhost:5080
@@ -59,7 +61,7 @@ The tests distinguish liveness from readiness and use in-memory SQLite for authe
 4. Click Confirm email address, then sign in at `/login`.
 5. View your verification status at `/account`, resend verification if needed, and sign out.
 
-Accounts can sign in before email verification to prepare onboarding drafts. Evidence submission requires verified email. Booking checks arrive with booking. Administrative registration is unavailable. Create organizations at /organizations and follow the profile and verification links.
+Accounts can sign in before email verification to prepare onboarding drafts. Evidence submission requires verified email. Booking creation requires verified email. Administrative registration is unavailable. Create organizations at /organizations and follow the profile and verification links.
 
 Browser calls use an allowlisted Next.js BFF route, no-store responses, HttpOnly cookies, an Origin check, and a CSRF token fetched before each mutation. All authentication POSTs, including login and registration, require CSRF. Verification tokens expire after two hours and are single-use. Sessions expire after eight hours; logout revokes the current session in the database, preventing cookie replay. Login failures trigger account lockout; authentication traffic has a conservative 20-request/minute per-backend-IP limit. Requests proxied by the BFF currently share its IP, so trusted per-user/client rate partitioning is required before public deployment.
 
@@ -91,8 +93,12 @@ After approval, open the Owner profile editor, save any changes, and explicitly 
 
 ## Try service listings
 
-Apply the ServiceCatalog migration through normal Development Compose startup or the host migration command above. Open /organizations -> Service catalog, save an offer, and publish it only after its verified provider profile is explicitly published. Browse /services anonymously. See [service catalog](service-catalog.md) for rules, validation, filters, and remaining image work.
+Apply the ServiceCatalog migration through normal Development Compose startup or the host migration command above. Open /organizations -> Service catalog, save an offer, and publish it only after its verified provider profile is explicitly published. Browse /services anonymously. See [service catalog](service-catalog.md) for rules, validation, filters, and image workflow.
 
 ## Try safe service images
 
 Apply the ServiceImages migration with the usual host migration command, or rebuild the Development Compose stack. Select a saved listing in /catalog, upload a fictional JPEG/PNG with alt text and demo acknowledgment, and republish the offer to make the processed image visible publicly. Compose enables the separate image cleanup worker; host runs use ServiceImages__CleanupEnabled=true. Development creates a distinct private service-images bucket using local Storage credentials. Outside Development, configure dedicated ServiceImages__AccessKey and ServiceImages__SecretKey for that bucket and HTTPS. See [safe service images](service-images.md) for limits, workflows, and remaining production checks.
+
+## Try properties, availability, and booking
+
+Apply all migrations using the command above (CustomerProperties, ProviderAvailabilityAndBookings, BookingReservationConstraints). As Owner configure /availability; as a separate verified customer save a fictional address at /properties, select a published service at /services, and request a slot. Manage customer/provider requests at /bookings. Compose enables automatic persisted pending-expiry updates; the host command above opts in. Pending slots stop blocking at deadline even before the worker runs. Change the deadline with BOOKING_PENDING_MINUTES in .env (5–1440, default 60). See [booking walkthrough](properties-availability-bookings.md) for Postman, permissions, snapshots, and real-stack checks. Payments/reviews/partner OAuth are not implemented.

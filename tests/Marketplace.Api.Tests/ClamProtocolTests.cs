@@ -27,7 +27,7 @@ public sealed class ClamProtocolTests
                 var command = new byte[10]; await stream.ReadExactlyAsync(command, timeout.Token);
                 Assert.Equal(Encoding.ASCII.GetBytes("zINSTREAM\0"), command);
                 using var received = new MemoryStream(); var header = new byte[4];
-                for (;;)
+                for (; ; )
                 {
                     await stream.ReadExactlyAsync(header, timeout.Token); var length = BinaryPrimitives.ReadUInt32BigEndian(header);
                     if (length == 0) break;

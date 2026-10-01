@@ -81,8 +81,10 @@ Public provider profiles are available at `/providers` after an Owner explicitly
 
 
 
-Core service catalog management is available at `/catalog?organizationId={id}`, with public discovery at `/services`. Owners manage drafts/publication/archiving; Staff read only. Current provider eligibility gates every public offer. PHP fixed prices, filters, and paging are implemented; safe service images are now implemented and booking remains planned. See [service catalog](docs/architecture/service-catalog.md).
+Core service catalog management is available at `/catalog?organizationId={id}`, with public discovery at `/services`. Owners manage drafts/publication/archiving; Staff read only. Current provider eligibility gates every public offer. PHP fixed prices, filters, and paging are implemented; safe service images are now implemented and properties, availability, and booking are implemented. See [service catalog](docs/architecture/service-catalog.md).
 
 
 
 Service images support Owner-authorized JPEG/PNG uploads, malware scanning, metadata-free PNG processing, private previews, eligibility-gated public display, and durable removal/orphan cleanup. See [safe service images](docs/architecture/service-images.md). Production credentials/licensing/resource isolation and the real Docker image flow still need validation.
+
+Customer-owned service addresses are available at /properties. Owners configure one shared provider calendar at /availability. Verified customers request fictional bookings from service details; customer/provider views, decisions, snapshots, history, and notices are at /bookings. See [properties, availability, and booking walkthrough](docs/architecture/properties-availability-bookings.md) and [Milestone B OpenAPI](docs/api/milestone-b.openapi.json). Database migrations and automated checks are included; real Docker/PostgreSQL/SMTP and interactive browser acceptance remain pending.

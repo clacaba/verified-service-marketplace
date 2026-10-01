@@ -40,5 +40,5 @@ public static class OrganizationPermissions
 {
     public static string[] For(string role) => role == "Owner"
         ? ["organization:read", "members:manage", "profile:read", "profile:write", "catalog:read", "catalog:write", "verification:read", "verification:write", "bookings:read", "bookings:manage"]
-        : ["catalog:read", "organization:read", "profile:read", "verification:read", "bookings:read"];
+        : ["catalog:read", "organization:read", "profile:read", "verification:read", "bookings:read", "bookings:manage"];
 }

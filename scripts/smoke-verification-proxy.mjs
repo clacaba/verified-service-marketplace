@@ -108,8 +108,17 @@ try {
     const catalogRoot = origin + "/api/v1/organizations/" + organization + "/services";
     assert.equal((await fetch(catalogRoot)).status, 200);
     assert.equal((await fetch(catalogRoot + "/" + application)).status, 200);
+    assert.equal((await fetch(origin + "/properties")).status, 200);
+    assert.equal((await fetch(origin + "/availability")).status, 200);
+    assert.equal((await fetch(origin + "/bookings")).status, 200);
+    for (const route of ["properties", "properties/" + document, "bookings", "bookings/" + document, "booking-notifications", "organizations/" + organization + "/availability", "services/" + application + "/availability?from=2026-10-02T00:00:00Z&until=2026-10-03T00:00:00Z"]) assert.equal((await fetch(origin + "/api/v1/" + route)).status, 200);
     const secure = {Origin: origin, "Content-Type": "application/json", "X-CSRF-Token": "test-csrf", "If-Match": '"version-one"'};
     assert.equal((await fetch(catalogRoot, {method: "POST", headers: secure, body: "{}"})).status, 200);
+    for (const route of ["properties", "properties/" + document + "/archive", "bookings", "bookings/" + document + "/decisions"]) assert.equal((await fetch(origin + "/api/v1/" + route, {method: "POST", headers: secure, body: "{}"})).status, 200);
+    for (const route of ["properties/" + document, "organizations/" + organization + "/availability"]) assert.equal((await fetch(origin + "/api/v1/" + route, {method: "PUT", headers: secure, body: "{}"})).status, 200);
+    assert.equal((await fetch(origin + "/api/v1/bookings", {method: "POST", headers: {...secure, Origin: "https://untrusted.example"}, body: "{}"})).status, 403);
+    assert.equal((await fetch(origin + "/api/v1/properties/" + document, {method: "DELETE", headers: secure})).status, 404);
+    assert.equal((await fetch(origin + "/api/v1/services/" + application + "/availability", {method: "PUT", headers: secure, body: "{}"})).status, 404);
     assert.equal((await fetch(catalogRoot + "/" + application, {method: "PUT", headers: secure, body: "{}"})).status, 200);
     for (const action of ["publication", "archive"]) assert.equal((await fetch(catalogRoot + "/" + application + "/" + action, {method: "POST", headers: secure, body: "{}"})).status, 200);
     assert.equal((await fetch(origin + "/api/v1/services/" + application, {method: "PUT", headers: secure, body: "{}"})).status, 404);
@@ -126,7 +135,7 @@ try {
     assert.equal((await fetch(origin + "/api/v1/services/" + application + "/images", {method: "POST", headers: secure, body: "{}"})).status, 404);
     assert.equal((await fetch(catalogRoot + "/" + application + "/images", {method: "POST", headers: {...secure, Origin: "https://untrusted.example"}, body: "{}"})).status, 403);
     assert.equal((await fetch(catalogRoot + "/" + application + "/images", {method: "POST", headers: {...secure, "Content-Length": String(6 * 1024 * 1024 + 1)}, body: "x".repeat(6 * 1024 * 1024 + 1)})).status, 413);
-    console.log("PASS: image upload/removal, binary public/private delivery, image limit/origin/allowlist protections; catalog editor, public service pages and authorized proxy methods; public directory/detail content, publication/read-only proxy allowlist; reviewer/notification pages and allowed review/revision/PATCH proxy routes; verification page HTTP 200, multipart byte/header forwarding, binary private download, ETag/no-store forwarding, origin protection, and route allowlist.");
+    console.log("PASS: property/availability/booking pages and method/origin allowlists; image upload/removal, binary public/private delivery, image limit/origin/allowlist protections; catalog editor, public service pages and authorized proxy methods; public directory/detail content, publication/read-only proxy allowlist; reviewer/notification pages and allowed review/revision/PATCH proxy routes; verification page HTTP 200, multipart byte/header forwarding, binary private download, ETag/no-store forwarding, origin protection, and route allowlist.");
 } finally {
     const stopped = once(web, "exit"); web.kill(); await stopped;
     await new Promise(done => upstream.close(done));

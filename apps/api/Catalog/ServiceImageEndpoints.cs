@@ -12,7 +12,12 @@ public static class ServiceImageEndpoints
 {
     internal static object Summary(ServiceImage image, ServiceListing listing, bool publicView) => new
     {
-        image.Id, image.AltText, image.Width, image.Height, image.Size, image.CreatedAt,
+        image.Id,
+        image.AltText,
+        image.Width,
+        image.Height,
+        image.Size,
+        image.CreatedAt,
         contentType = "image/png",
         url = publicView ? $"/api/v1/services/{listing.Id}/images/{image.Id}/content" : $"/api/v1/organizations/{listing.OrganizationId}/services/{listing.Id}/images/{image.Id}/content"
     };
@@ -54,8 +59,16 @@ public static class ServiceImageEndpoints
                 using var deadline = CancellationTokenSource.CreateLinkedTokenSource(http.RequestAborted); deadline.CancelAfter(TimeSpan.FromSeconds(30));
                 var processed = await processor.Process(bytes, file.ContentType, deadline.Token);
                 if (!await scanner.IsClean(processed.Bytes, http.RequestAborted)) return Results.Problem(statusCode: 400, title: "Processed image failed malware scanning.");
-                var image = new ServiceImage { ServiceId = serviceId, AltText = alt, Width = processed.Width, Height = processed.Height, Size = processed.Bytes.Length,
-                    ObjectKey = "processed/" + Guid.NewGuid().ToString("N") + ".png", Sha256 = Convert.ToHexString(SHA256.HashData(processed.Bytes)) };
+                var image = new ServiceImage
+                {
+                    ServiceId = serviceId,
+                    AltText = alt,
+                    Width = processed.Width,
+                    Height = processed.Height,
+                    Size = processed.Bytes.Length,
+                    ObjectKey = "processed/" + Guid.NewGuid().ToString("N") + ".png",
+                    Sha256 = Convert.ToHexString(SHA256.HashData(processed.Bytes))
+                };
                 // Persist orphan reservation before storage write, including failures/timeouts.
                 var reservation = new ServiceImageDeletion { ObjectKey = image.ObjectKey, DueAt = DateTime.UtcNow.AddHours(1) };
                 db.ServiceImageDeletions.Add(reservation); await db.SaveChangesAsync(http.RequestAborted);

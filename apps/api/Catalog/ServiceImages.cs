@@ -58,9 +58,13 @@ public sealed class S3ServiceImageStore : IServiceImageStore
         if (string.IsNullOrWhiteSpace(access) || string.IsNullOrWhiteSpace(secret))
             throw new InvalidOperationException("Configure dedicated service-image storage credentials outside Development.");
         var scoped = new ConfigurationBuilder().AddConfiguration(config)
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["Storage:Bucket"] = bucket,
-                ["Storage:AccessKey"] = access, ["Storage:SecretKey"] = secret,
-                ["Storage:Endpoint"] = config["ServiceImages:Endpoint"] ?? config["Storage:Endpoint"] }).Build();
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Storage:Bucket"] = bucket,
+                ["Storage:AccessKey"] = access,
+                ["Storage:SecretKey"] = secret,
+                ["Storage:Endpoint"] = config["ServiceImages:Endpoint"] ?? config["Storage:Endpoint"]
+            }).Build();
         storage = new S3EvidenceStore(scoped, environment);
     }
     private static string ValidateKey(string key)

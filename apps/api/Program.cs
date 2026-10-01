@@ -1,3 +1,4 @@
+using Marketplace.Api.Bookings;
 using Marketplace.Api.Properties;
 using Marketplace.Api.Catalog;
 using Marketplace.Api.Review;
@@ -33,6 +34,8 @@ if (builder.Configuration.GetValue<bool>("ServiceImages:CleanupEnabled")) builde
 builder.Services.AddScoped<IEvidenceScanner, ClamEvidenceScanner>();
 if (builder.Configuration.GetValue<bool>("Evidence:RetentionEnabled")) builder.Services.AddHostedService<EvidenceRetentionWorker>();
 builder.Services.AddRateLimiter(o => o.AddPolicy("evidence", c => RateLimitPartition.GetFixedWindowLimiter(c.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous", _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 })));
+builder.Services.AddOptions<BookingOptions>().Bind(builder.Configuration.GetSection("Booking")).Validate(o => o.PendingMinutes is >= 5 and <= 1440, "Pending confirmation must be 5–1440 minutes.").ValidateOnStart();
+if (builder.Configuration.GetValue<bool>("Booking:ExpiryEnabled")) builder.Services.AddHostedService<BookingExpiryWorker>();
 var app = builder.Build();
 if (args.Length == 2 && args[0] is "--grant-reviewer" or "--revoke-reviewer")
 {
@@ -42,8 +45,8 @@ if (args.Length == 2 && args[0] is "--grant-reviewer" or "--revoke-reviewer")
 if (app.Environment.IsDevelopment() && app.Configuration.GetValue<bool>("Database:ApplyMigrations")) { using var scope = app.Services.CreateScope(); await scope.ServiceProvider.GetRequiredService<MarketplaceDbContext>().Database.MigrateAsync(); }
 app.UseExceptionHandler(); app.UseStatusCodePages(); app.UseAuthentication(); app.UseAuthorization(); app.UseRateLimiter();
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false }); app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") });
-app.MapGet("/api/v1/platform", () => new { name = "Verified Service Marketplace", stage = "Service catalog", featuresImplemented = true }); app.MapMarketplaceAuth();
-app.MapMarketplaceOrganizations(); app.MapMarketplaceProviders(); app.MapMarketplaceVerification(); app.MapMarketplaceReview(); app.MapMarketplaceCatalog(); app.MapMarketplaceProperties(); app.Run();
+app.MapGet("/api/v1/platform", () => new { name = "Verified Service Marketplace", stage = "Properties, availability, and bookings", featuresImplemented = true }); app.MapMarketplaceAuth();
+app.MapMarketplaceOrganizations(); app.MapMarketplaceProviders(); app.MapMarketplaceVerification(); app.MapMarketplaceReview(); app.MapMarketplaceCatalog(); app.MapMarketplaceProperties(); app.MapMarketplaceBookings(); app.Run();
 public partial class Program { }
 public sealed class DatabaseHealthCheck(IServiceScopeFactory scopes) : IHealthCheck
 {

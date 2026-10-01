@@ -98,8 +98,12 @@ Website sessions remain cookies. Administrator MFA and identity-provider-managed
 
 ## Core service catalog (implemented)
 
-See [service catalog](../architecture/service-catalog.md) for authorized organization service drafts, exact ETags, publication/archive transitions, fixed PHP centavo prices, duration/category/area validation, public search filters/sorting/pagination, and public privacy projection. The matching catalog paths and schemas are included in this OpenAPI document. Safe service images are implemented; booking is not implemented and advanced SEARCH-01 follow-ups remain pending.
+See [service catalog](../architecture/service-catalog.md) for authorized organization service drafts, exact ETags, publication/archive transitions, fixed PHP centavo prices, duration/category/area validation, public search filters/sorting/pagination, and public privacy projection. The matching catalog paths and schemas are included in this OpenAPI document. Safe service images are implemented; booking is now documented in Milestone B; advanced SEARCH-01 follow-ups remain pending.
 
 ## Safe service images (implemented)
 
 Service summaries include an images array containing processed PNG metadata and relative member-only/public URLs. Owner multipart uploads and removal require listing If-Match and CSRF; both demote the listing to Draft. Public content rechecks current eligibility; originals and private evidence are never served. See [safe service images](../architecture/service-images.md) for size/dimension/frame limits, scanning, separate bucket/production credentials, API details, cleanup, and validation. Provider avatar/imageId uploads remain deferred.
+
+## Milestone B (implemented)
+
+Customer properties, provider schedule/public slots, booking requests/list/details/lifecycle, and private booking notices are specified in [Milestone B OpenAPI](milestone-b.openapi.json). See [workflow and environment configuration](../architecture/properties-availability-bookings.md). Any human account can act as Customer; active Staff now has bookings:manage but not profile/catalog/availability/membership write permissions. Use cookie sessions and CSRF as above; partner OAuth is still deferred.

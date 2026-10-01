@@ -1202,3 +1202,17 @@ Deletion reservations persist before object writes. Failed/stale/revoked/cancell
 Catalog editor uploads/removes and previews processed images; public directory/detail pages display them with accessible alt text without an optimization cache that bypasses eligibility. API contract, migration, reviewable SQL, tests and walkthrough are included. See docs/architecture/service-images.md.
 
 Next milestone: customer properties and provider availability before booking. Booking is still not implemented; profile/avatar image uploads are a separate feature.
+
+## 37. Customer properties, provider availability, and booking implementation
+
+Delivered: private customer-owned property create/list/read/edit/archive with validated structured addresses, exact ETag/CSRF, retained records, and /properties UI. Any human account may act as a customer; booking requires verified email. property_id remains a physical resource identifier, never an organization/tenant boundary. Provider members see addresses only through authorized bookings.
+
+Delivered: Owner-configured IANA timezone, weekly windows, dated replacement exceptions/closures, breaks through multiple windows, before/after buffers, minimum notice, 30-day horizon, and public UTC slot discovery. One shared capacity per provider organization across services/staff. The initial /availability editor uses JSON windows with examples. Ambiguous DST times and appointments crossing an offset change are conservatively unavailable; existing reservations survive schedule edits.
+
+Delivered: pending requests reserve capacity; server captures immutable price/duration/address/timezone/buffer snapshots. Database schedule-version compare-and-swap and transaction rollback prevent overlapping concurrent reservations. Property/service version changes serialize snapshots against edits. Pending expiry is configurable and capacity releases immediately at deadline. Compose enables a retrying expiry sweep for persisted state/history/notifications. Owner and active Staff can manage booking lifecycle; customers cancel their own pending/confirmed requests before start. Decisions require exact ETag/CSRF and record actor, time, status, reason atomically with private booking notices and encrypted queued email.
+
+Delivered pages: /properties, /availability, service detail booking request, /bookings with customer/provider views, decisions, private address snapshot, history, and latest notices. Booking and provider-member access is rechecked independently of public verification, so existing bookings remain visible when checks expire while revoked staff loses access immediately.
+
+See docs/architecture/properties-availability-bookings.md and docs/api/milestone-b.openapi.json for environment settings, exact APIs, concurrency protocol, and Postman walkthrough. Real Docker/PostgreSQL concurrent-request, SMTP, and interactive browser validation remain pending; automated SQLite/proxy/build results do not claim those checks. Preserve the same serialization protocol in all future reservation-writing paths.
+
+Deferred: visual calendar UX, geographic service-area validation, human booking idempotency/rescheduling, multi-capacity/staff assignment, booking notice read tracking, payments/disputes, completed-booking reviews, and partner OAuth/idempotency/webhooks. Next feature: completed-booking reviews, after real-stack acceptance of this booking slice.

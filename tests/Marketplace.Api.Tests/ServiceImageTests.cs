@@ -63,7 +63,7 @@ public sealed partial class VerificationTests
         var uploaded = await owner.Send($"organizations/{org}/services/{service}/images", body: PhotoForm(raw, "image/jpeg"), etag: etag);
         Assert.Equal(HttpStatusCode.OK, uploaded.StatusCode); var listing = await uploaded.Content.ReadFromJsonAsync<JsonElement>(); var image = listing.GetProperty("images")[0]; var id = image.GetProperty("id").GetGuid();
         Assert.Equal("Draft", listing.GetProperty("status").GetString());
-        Assert.Equal(new[] {"altText", "contentType", "createdAt", "height", "id", "size", "url", "width"}, image.EnumerateObject().Select(p => p.Name).Order().ToArray());
+        Assert.Equal(new[] { "altText", "contentType", "createdAt", "height", "id", "size", "url", "width" }, image.EnumerateObject().Select(p => p.Name).Order().ToArray());
         Assert.DoesNotContain("PRIVATE.jpg", image.ToString()); Assert.DoesNotContain("objectKey", image.ToString()); Assert.DoesNotContain("sha256", image.ToString());
         Assert.Single(factory.ImageStorage.Objects); Assert.Single(factory.Storage.Objects); // Only the private review evidence is in evidence storage.
         var stored = factory.ImageStorage.Objects.Single().Value; Assert.False(raw.SequenceEqual(stored));
@@ -101,7 +101,7 @@ public sealed partial class VerificationTests
         Assert.Equal((HttpStatusCode)413, (await owner.Send(root, body: PhotoForm(new byte[ServiceImagePolicy.MaxInputBytes + 1]), etag: etag)).StatusCode);
         await staff.Login("staff@example.test");
         Assert.Equal(HttpStatusCode.NotFound, (await staff.Send(root, body: PhotoForm(), etag: etag)).StatusCode);
-        await factory.Update(async db => db.OrganizationMemberships.Add(new Marketplace.Api.Organizations.OrganizationMembership {OrganizationId = org, UserId = (await db.Users.SingleAsync(u => u.Email == "staff@example.test")).Id, Role = "Staff", Active = true}));
+        await factory.Update(async db => db.OrganizationMemberships.Add(new Marketplace.Api.Organizations.OrganizationMembership { OrganizationId = org, UserId = (await db.Users.SingleAsync(u => u.Email == "staff@example.test")).Id, Role = "Staff", Active = true }));
         Assert.Equal(HttpStatusCode.Forbidden, (await staff.Send(root, body: PhotoForm(), etag: etag)).StatusCode);
         var uploaded = await owner.Send(root, body: PhotoForm(), etag: etag); Assert.Equal(HttpStatusCode.OK, uploaded.StatusCode);
         var image = (await uploaded.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("images")[0]; var url = image.GetProperty("url").GetString()!;
@@ -141,10 +141,10 @@ public sealed partial class VerificationTests
         factory.ImageStorage.OnPut = () => factory.Update(async db => (await db.ServiceListings.SingleAsync()).Version = Guid.NewGuid());
         Assert.Equal(HttpStatusCode.PreconditionFailed, (await owner.Send(route, body: PhotoForm(), etag: etag)).StatusCode);
         factory.ImageStorage.OnPut = null;
-        await factory.Update(async db => {Assert.Equal(0, await db.ServiceImages.CountAsync()); Assert.Equal(2, await db.ServiceImageDeletions.CountAsync()); foreach(var job in await db.ServiceImageDeletions.ToListAsync()) job.DueAt = DateTime.UtcNow.AddSeconds(-1);});
+        await factory.Update(async db => { Assert.Equal(0, await db.ServiceImages.CountAsync()); Assert.Equal(2, await db.ServiceImageDeletions.CountAsync()); foreach (var job in await db.ServiceImageDeletions.ToListAsync()) job.DueAt = DateTime.UtcNow.AddSeconds(-1); });
         var worker = new ServiceImageCleanupWorker(factory.Services.GetRequiredService<IServiceScopeFactory>(), Microsoft.Extensions.Logging.Abstractions.NullLogger<ServiceImageCleanupWorker>.Instance);
         factory.ImageStorage.Fail = true; await worker.Sweep(CancellationToken.None);
-        await factory.Update(async db => {Assert.All(await db.ServiceImageDeletions.ToListAsync(), job => Assert.Equal(1, job.Attempts)); foreach(var job in await db.ServiceImageDeletions.ToListAsync()) job.DueAt = DateTime.UtcNow.AddSeconds(-1);});
+        await factory.Update(async db => { Assert.All(await db.ServiceImageDeletions.ToListAsync(), job => Assert.Equal(1, job.Attempts)); foreach (var job in await db.ServiceImageDeletions.ToListAsync()) job.DueAt = DateTime.UtcNow.AddSeconds(-1); });
         factory.ImageStorage.Fail = false; await worker.Sweep(CancellationToken.None); Assert.Empty(factory.ImageStorage.Objects);
     }
     [Fact]
@@ -154,7 +154,7 @@ public sealed partial class VerificationTests
         var (org, _, _) = await Setup(factory, owner); var (service, etag) = await CreateOffer(owner, org);
         factory.ImageStorage.OnPut = () => factory.Update(async db => (await db.OrganizationMemberships.SingleAsync(m => m.OrganizationId == org)).Active = false);
         Assert.Equal(HttpStatusCode.NotFound, (await owner.Send($"organizations/{org}/services/{service}/images", body: PhotoForm(), etag: etag)).StatusCode);
-        await factory.Update(async db => {Assert.Equal(0, await db.ServiceImages.CountAsync()); Assert.Equal(1, await db.ServiceImageDeletions.CountAsync());});
+        await factory.Update(async db => { Assert.Equal(0, await db.ServiceImages.CountAsync()); Assert.Equal(1, await db.ServiceImageDeletions.CountAsync()); });
         Assert.Single(factory.ImageStorage.Objects);
     }
     [Fact]
@@ -174,7 +174,7 @@ public sealed partial class VerificationTests
     {
         await using var factory = new Factory(); using var client = factory.Browser(); var owner = new Browser(client); var (org, _, _) = await Setup(factory, owner); var (service, etag) = await CreateOffer(owner, org);
         var route = $"organizations/{org}/services/{service}/images"; string? url = null;
-        for(var i = 0; i < 5; i++)
+        for (var i = 0; i < 5; i++)
         {
             var uploaded = await owner.Send(route, body: PhotoForm(), etag: etag); Assert.Equal(HttpStatusCode.OK, uploaded.StatusCode); etag = uploaded.Headers.ETag!.ToString();
             url = (await uploaded.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("images")[0].GetProperty("url").GetString();

@@ -38,10 +38,10 @@ public static class PublicProviderEndpoints
         var rows = await query.AsNoTracking().Include(p => p.Categories).ToListAsync();
         var orgIds = rows.Select(p => p.OrganizationId).ToArray();
         var checks = await (from c in db.VerificationChecks.AsNoTracking()
-            join d in db.VerificationDecisions on c.DecisionId equals d.Id
-            join a in db.VerificationApplications on d.ApplicationId equals a.Id
-            where orgIds.Contains(c.OrganizationId) && c.RevokedAt == null && c.ExpiresAt > now && d.Decision == "Approved" && a.IsActive && a.Status == "Approved"
-            select c).ToListAsync();
+                            join d in db.VerificationDecisions on c.DecisionId equals d.Id
+                            join a in db.VerificationApplications on d.ApplicationId equals a.Id
+                            where orgIds.Contains(c.OrganizationId) && c.RevokedAt == null && c.ExpiresAt > now && d.Decision == "Approved" && a.IsActive && a.Status == "Approved"
+                            select c).ToListAsync();
         var categories = await db.ServiceCategories.AsNoTracking().Where(c => c.Active).ToDictionaryAsync(c => c.Id);
         return rows.Select(p => new PublicProfile(p.Id, p.DisplayName, p.ProviderType, p.Biography, p.ServiceArea,
             p.Categories.Where(c => categories.ContainsKey(c.CategoryId)).OrderBy(c => categories[c.CategoryId].Name).Select(c => new Category(c.CategoryId, categories[c.CategoryId].Name)).ToArray(),

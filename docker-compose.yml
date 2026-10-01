@@ -44,6 +44,8 @@ services:
       Storage__SecretKey: ${MINIO_ROOT_PASSWORD}
       Storage__Bucket: verification-evidence
       ServiceImages__Bucket: service-images
+      Booking__ExpiryEnabled: "true"
+      Booking__PendingMinutes: ${BOOKING_PENDING_MINUTES:-60}
       ServiceImages__CleanupEnabled: "true"
       Scanner__Host: scanner
       Scanner__Port: "3310"

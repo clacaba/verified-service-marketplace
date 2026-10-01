@@ -93,8 +93,12 @@ public sealed partial class VerificationTests
         await using var factory = new Factory(); using var ownerClient = factory.Browser(); using var reviewerClient = factory.Browser(); using var anonymous = factory.Browser();
         var owner = new Browser(ownerClient); var reviewer = new Browser(reviewerClient);
         var (org, provider, _) = await ApprovedPublicSetup(factory, owner, reviewer); var published = await Publish(owner, org);
-        var saved = await owner.Send($"organizations/{org}/provider-profile", HttpMethod.Put, JsonContent.Create(new {
-            displayName = "Changed provider", providerType = "Individual", biography = "Fictional services.", serviceArea = "Demo area",
+        var saved = await owner.Send($"organizations/{org}/provider-profile", HttpMethod.Put, JsonContent.Create(new
+        {
+            displayName = "Changed provider",
+            providerType = "Individual",
+            biography = "Fictional services.",
+            serviceArea = "Demo area",
             categoryIds = new[] { "10000000-0000-0000-0000-000000000001" }
         }), published.Headers.ETag!.ToString());
         Assert.Equal(HttpStatusCode.OK, saved.StatusCode); Assert.Equal(JsonValueKind.Null, (await saved.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("publishedAt").ValueKind);

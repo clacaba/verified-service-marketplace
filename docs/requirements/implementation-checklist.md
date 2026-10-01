@@ -55,8 +55,13 @@ Source: [Master plan](../service-booking-marketplace-plan.md), sections 29–32.
 ## Later milestones
 
 - [ ] Production image-processing isolation, dedicated least-privilege storage credentials, distributed cleanup leases, and image dependency/license review.
-- [ ] Customer properties, provider availability, and conflict-safe booking lifecycle.
-- [ ] Notifications and completed-booking reviews.
+- [x] PROPERTY-01: Private owned addresses, validation, edit/archive, version conflicts, migration, and customer UI.
+- [x] AVAILABILITY-01: Owner schedule, timezone/DST policy, weekly windows/exceptions/breaks/buffers/notice, one capacity, and public slots.
+- [x] BOOKING-01/02: Verified customer request, owned property/current eligible service, immutable snapshots, database concurrency rollback, expiry, authorized versioned lifecycle/history, customer/provider UI.
+- [x] Booking private notices and encrypted transactional email queue; existing SMTP retry worker reused.
+- [ ] Verify property/booking migrations and genuinely simultaneous reservations using PostgreSQL; run full interactive provider/customer/staff/expiry/SMTP acceptance with Docker.
+- [ ] Booking UX follow-ups: Visual calendar, geo coverage matching, human idempotency/rescheduling, and notification read tracking.
+- [ ] Completed-booking reviews and booking notification read tracking.
 - [ ] Administrator MFA and production cookie/CSRF/origin hardening verification.
 - [ ] Scoped partner OAuth through an established identity provider, idempotent bookings, rate limits, and signed webhooks.
 - [ ] Deployment, seeded demos, API documentation, screenshots, and demonstration video.

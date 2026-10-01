@@ -1,0 +1,1300 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Verified Service Marketplace — Properties, availability, bookings",
+    "version": "0.1.0",
+    "description": "Cookie-authenticated human API. Read alongside milestone-a.openapi.json for auth/CSRF/catalog. Fictional demo: no payments. Public slots advisory; create rechecks. Stored booking snapshot nested keys are PascalCase. Real PostgreSQL/browser acceptance remains pending."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5080"
+    },
+    {
+      "url": "http://localhost:3000",
+      "description": "Same-origin frontend proxy"
+    }
+  ],
+  "security": [
+    {
+      "browserSession": []
+    }
+  ],
+  "paths": {
+    "/api/v1/properties": {
+      "get": {
+        "operationId": "listProperties",
+        "summary": "List only the customer's active properties",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Property"
+                      }
+                    },
+                    "totalCount": {
+                      "type": "integer"
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "pageSize": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body, validation, query, or CSRF"
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "403": {
+            "description": "Role/email not permitted"
+          },
+          "404": {
+            "description": "Missing/private/ineligible resource"
+          },
+          "409": {
+            "description": "Invalid state/time, overlap, or database version race; reload"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createProperty",
+        "summary": "Create a private service address",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropertyInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Property"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Exact quoted version. Use for If-Match; booking creation may change property/service/calendar versions.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body, validation, query, or CSRF"
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "403": {
+            "description": "Role/email not permitted"
+          },
+          "404": {
+            "description": "Missing/private/ineligible resource"
+          },
+          "409": {
+            "description": "Invalid state/time, overlap, or database version race; reload"
+          }
+        }
+      }
+    },
+    "/api/v1/properties/{propertyId}": {
+      "get": {
+        "operationId": "getProperty",
+        "summary": "Read an owned property, including archived",
+        "parameters": [
+          {
+            "name": "propertyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Property"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Exact quoted current version."
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body, validation, query, or CSRF"
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "403": {
+            "description": "Role/email not permitted"
+          },
+          "404": {
+            "description": "Missing/private/ineligible resource"
+          },
+          "409": {
+            "description": "Invalid state/time, overlap, or database version race; reload"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateProperty",
+        "summary": "Edit active property; does not change booking snapshots",
+        "parameters": [
+          {
+            "name": "propertyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropertyInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Property"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Exact quoted version. Use for If-Match; booking creation may change property/service/calendar versions.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body, validation, query, or CSRF"
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "403": {
+            "description": "Role/email not permitted"
+          },
+          "404": {
+            "description": "Missing/private/ineligible resource"
+          },
+          "409": {
+            "description": "Invalid state/time, overlap, or database version race; reload"
+          },
+          "412": {
+            "description": "Stale exact If-Match"
+          },
+          "428": {
+            "description": "If-Match required"
+          }
+        }
+      }
+    },
+    "/api/v1/properties/{propertyId}/archive": {
+      "post": {
+        "operationId": "archiveProperty",
+        "summary": "Archive without deleting history; mutation needs CSRF",
+        "parameters": [
+          {
+            "name": "propertyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Property"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Exact quoted version. Use for If-Match; booking creation may change property/service/calendar versions.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body, validation, query, or CSRF"
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "403": {
+            "description": "Role/email not permitted"
+          },
+          "404": {
+            "description": "Missing/private/ineligible resource"
+          },
+          "409": {
+            "description": "Invalid state/time, overlap, or database version race; reload"
+          },
+          "412": {
+            "description": "Stale exact If-Match"
+          },
+          "428": {
+            "description": "If-Match required"
+          }
+        }
+      }
+    },
+    "/api/v1/organizations/{organizationId}/availability": {
+      "get": {
+        "operationId": "getAvailability",
+        "summary": "Active Owner/Staff read; unconfigured ETag is quoted zero GUID",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "configured": {
+                      "type": "boolean"
+                    },
+                    "configuration": {
+                      "$ref": "#/components/schemas/Schedule"
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Exact quoted current version."
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body, validation, query, or CSRF"
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "403": {
+            "description": "Role/email not permitted"
+          },
+          "404": {
+            "description": "Missing/private/ineligible resource"
+          },
+          "409": {
+            "description": "Invalid state/time, overlap, or database version race; reload"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateAvailability",
+        "summary": "Owner replaces weekly hours and exceptions; keeps existing reservations",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Schedule"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "configured": {
+                      "type": "boolean"
+                    },
+                    "configuration": {
+                      "$ref": "#/components/schemas/Schedule"
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Exact quoted version. Use for If-Match; booking creation may change property/service/calendar versions.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body, validation, query, or CSRF"
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "403": {
+            "description": "Role/email not permitted"
+          },
+          "404": {
+            "description": "Missing/private/ineligible resource"
+          },
+          "409": {
+            "description": "Invalid state/time, overlap, or database version race; reload"
+          },
+          "412": {
+            "description": "Stale exact If-Match"
+          },
+          "428": {
+            "description": "If-Match required"
+          }
+        }
+      }
+    },
+    "/api/v1/services/{serviceId}/availability": {
+      "get": {
+        "operationId": "getPublicSlots",
+        "summary": "Advisory available UTC slots; no private reservations/addresses",
+        "security": [],
+        "parameters": [
+          {
+            "name": "serviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Future range, at most seven days, within 30 days."
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Future range, at most seven days, within 30 days."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "startsAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "endsAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "timeZone": {
+                      "type": "string"
+                    },
+                    "disclosure": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body, validation, query, or CSRF"
+          },
+          "404": {
+            "description": "Missing/private/ineligible resource"
+          },
+          "409": {
+            "description": "Invalid state/time, overlap, or database version race; reload"
+          }
+        }
+      }
+    },
+    "/api/v1/bookings": {
+      "get": {
+        "operationId": "listBookings",
+        "summary": "Customer's bookings, or active member's organization bookings",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "organizationId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Booking"
+                      }
+                    },
+                    "totalCount": {
+                      "type": "integer"
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "pageSize": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body, validation, query, or CSRF"
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "403": {
+            "description": "Role/email not permitted"
+          },
+          "404": {
+            "description": "Missing/private/ineligible resource"
+          },
+          "409": {
+            "description": "Invalid state/time, overlap, or database version race; reload"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createBooking",
+        "summary": "Verified customer requests eligible service at owned property; atomically reserves capacity",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Booking"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Exact quoted version. Use for If-Match; booking creation may change property/service/calendar versions.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body, validation, query, or CSRF"
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "403": {
+            "description": "Role/email not permitted"
+          },
+          "404": {
+            "description": "Missing/private/ineligible resource"
+          },
+          "409": {
+            "description": "Invalid state/time, overlap, or database version race; reload"
+          }
+        }
+      }
+    },
+    "/api/v1/bookings/{bookingId}": {
+      "get": {
+        "operationId": "getBooking",
+        "summary": "Participant-only booking/address snapshot and audit history",
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "booking": {
+                      "$ref": "#/components/schemas/Booking"
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "occurredAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Exact quoted current version."
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body, validation, query, or CSRF"
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "403": {
+            "description": "Role/email not permitted"
+          },
+          "404": {
+            "description": "Missing/private/ineligible resource"
+          },
+          "409": {
+            "description": "Invalid state/time, overlap, or database version race; reload"
+          }
+        }
+      }
+    },
+    "/api/v1/bookings/{bookingId}/decisions": {
+      "post": {
+        "operationId": "decideBooking",
+        "summary": "Authorized exact-version lifecycle action; cancellation only before start",
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingDecision"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Booking"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Exact quoted version. Use for If-Match; booking creation may change property/service/calendar versions.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body, validation, query, or CSRF"
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "403": {
+            "description": "Role/email not permitted"
+          },
+          "404": {
+            "description": "Missing/private/ineligible resource"
+          },
+          "409": {
+            "description": "Invalid state/time, overlap, or database version race; reload"
+          },
+          "412": {
+            "description": "Stale exact If-Match"
+          },
+          "428": {
+            "description": "If-Match required"
+          }
+        }
+      }
+    },
+    "/api/v1/booking-notifications": {
+      "get": {
+        "operationId": "listBookingNotifications",
+        "summary": "Recipient-only notices with live booking participant checks; 20/page",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "bookingId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "totalCount": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body, validation, query, or CSRF"
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "403": {
+            "description": "Role/email not permitted"
+          },
+          "404": {
+            "description": "Missing/private/ineligible resource"
+          },
+          "409": {
+            "description": "Invalid state/time, overlap, or database version race; reload"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "browserSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "marketplace_session"
+      }
+    },
+    "schemas": {
+      "PropertyInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "label",
+          "addressLine1",
+          "addressLine2",
+          "city",
+          "region",
+          "postalCode",
+          "countryCode"
+        ],
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "addressLine1": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "addressLine2": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "city": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "region": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "postalCode": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20
+          },
+          "countryCode": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}$",
+            "description": "Recognized ISO region; structural validation, not geocoding."
+          }
+        }
+      },
+      "Property": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "addressLine1": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "addressLine2": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "city": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "region": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "postalCode": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20
+          },
+          "countryCode": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}$",
+            "description": "Recognized ISO region; structural validation, not geocoding."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "Window": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "startMinute",
+          "endMinute"
+        ],
+        "properties": {
+          "startMinute": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1425,
+            "multipleOf": 15
+          },
+          "endMinute": {
+            "type": "integer",
+            "minimum": 15,
+            "maximum": 1440,
+            "multipleOf": 15
+          }
+        }
+      },
+      "Schedule": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "timeZone",
+          "bufferMinutes",
+          "minimumNoticeMinutes",
+          "weekly",
+          "exceptions"
+        ],
+        "properties": {
+          "timeZone": {
+            "type": "string",
+            "example": "Asia/Manila"
+          },
+          "bufferMinutes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 120
+          },
+          "minimumNoticeMinutes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10080
+          },
+          "weekly": {
+            "type": "array",
+            "maxItems": 42,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "day",
+                "startMinute",
+                "endMinute"
+              ],
+              "properties": {
+                "day": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 6
+                },
+                "startMinute": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1425,
+                  "multipleOf": 15
+                },
+                "endMinute": {
+                  "type": "integer",
+                  "minimum": 15,
+                  "maximum": 1440,
+                  "multipleOf": 15
+                }
+              }
+            }
+          },
+          "exceptions": {
+            "type": "array",
+            "maxItems": 60,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "date",
+                "windows"
+              ],
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "windows": {
+                  "type": "array",
+                  "maxItems": 6,
+                  "items": {
+                    "$ref": "#/components/schemas/Window"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "BookingCreate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "serviceId",
+          "propertyId",
+          "startsAt"
+        ],
+        "properties": {
+          "serviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "propertyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Exact UTC/offset-bearing slot; within 30-day horizon."
+          }
+        }
+      },
+      "BookingDecision": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action",
+          "reason"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "confirm",
+              "decline",
+              "start",
+              "complete",
+              "cancel"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Required nonblank for decline/cancel."
+          }
+        }
+      },
+      "Booking": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "serviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "propertyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PendingProviderConfirmation",
+              "Confirmed",
+              "InProgress",
+              "Completed",
+              "Declined",
+              "Expired",
+              "CancelledByCustomer",
+              "CancelledByProvider"
+            ]
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "snapshot": {
+            "type": "object",
+            "description": "Immutable server-calculated service/property/timezone/buffer; nested keys PascalCase."
+          }
+        }
+      }
+    }
+  }
+}

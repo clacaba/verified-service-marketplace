@@ -1,3 +1,4 @@
+using Marketplace.Api.Bookings;
 using Marketplace.Api.Properties;
 using Marketplace.Api.Catalog;
 using Marketplace.Api.Review;
@@ -11,6 +12,10 @@ namespace Marketplace.Api.Data;
 
 public sealed class MarketplaceDbContext(DbContextOptions<MarketplaceDbContext> options) : IdentityDbContext<Account>(options)
 {
+    public DbSet<ProviderSchedule> ProviderSchedules => Set<ProviderSchedule>();
+    public DbSet<Booking> Bookings => Set<Booking>();
+    public DbSet<BookingEvent> BookingEvents => Set<BookingEvent>();
+    public DbSet<BookingNotice> BookingNotices => Set<BookingNotice>();
     public DbSet<CustomerProperty> CustomerProperties => Set<CustomerProperty>();
     public DbSet<ServiceImage> ServiceImages => Set<ServiceImage>();
     public DbSet<ServiceImageDeletion> ServiceImageDeletions => Set<ServiceImageDeletion>();
@@ -34,6 +39,29 @@ public sealed class MarketplaceDbContext(DbContextOptions<MarketplaceDbContext> 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.Entity<ProviderSchedule>().HasOne<Organization>().WithMany().HasForeignKey(s => s.Id).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<ProviderSchedule>().Property(s => s.Version).IsConcurrencyToken();
+        builder.Entity<Booking>().Property(b => b.Version).IsConcurrencyToken();
+        builder.Entity<Booking>().Property(b => b.Status).HasMaxLength(40);
+        builder.Entity<Booking>().ToTable(t =>
+        {
+            t.HasCheckConstraint("CK_Booking_Interval", "\"StartsAt\" < \"EndsAt\" AND \"ReservedFrom\" <= \"StartsAt\" AND \"ReservedUntil\" >= \"EndsAt\"");
+            t.HasCheckConstraint("CK_Booking_Status", "\"Status\" IN ('PendingProviderConfirmation','Confirmed','InProgress','Completed','Declined','Expired','CancelledByCustomer','CancelledByProvider')");
+        });
+        builder.Entity<Booking>().HasOne<Organization>().WithMany().HasForeignKey(b => b.OrganizationId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<Booking>().HasOne<ServiceListing>().WithMany().HasForeignKey(b => b.ServiceId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<Booking>().HasOne<CustomerProperty>().WithMany().HasForeignKey(b => b.PropertyId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<Booking>().HasOne<Account>().WithMany().HasForeignKey(b => b.CustomerId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<Booking>().HasIndex(b => new { b.OrganizationId, b.Status, b.ReservedFrom, b.ReservedUntil });
+        builder.Entity<Booking>().HasIndex(b => new { b.CustomerId, b.StartsAt });
+        builder.Entity<Booking>().HasIndex(b => new { b.Status, b.ExpiresAt });
+        builder.Entity<BookingEvent>().HasOne<Booking>().WithMany().HasForeignKey(e => e.BookingId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<BookingEvent>().Property(e => e.Reason).HasMaxLength(500);
+        builder.Entity<BookingEvent>().Property(e => e.Status).HasMaxLength(40);
+        builder.Entity<BookingNotice>().HasOne<Booking>().WithMany().HasForeignKey(n => n.BookingId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<BookingNotice>().HasOne<Account>().WithMany().HasForeignKey(n => n.UserId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<BookingNotice>().Property(n => n.Message).HasMaxLength(200);
+        builder.Entity<BookingNotice>().HasIndex(n => new { n.UserId, n.CreatedAt });
         builder.Entity<CustomerProperty>().HasOne<Account>().WithMany().HasForeignKey(p => p.CustomerId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<CustomerProperty>().Property(p => p.Version).IsConcurrencyToken();
         builder.Entity<CustomerProperty>().Property(p => p.Label).HasMaxLength(80);

@@ -33,7 +33,7 @@ public static class CatalogEndpoints
         images = s.Images.Where(i => i.DeletedAt == null).OrderBy(i => i.CreatedAt).ThenBy(i => i.Id).Select(i => ServiceImageEndpoints.Summary(i, s, true)),
         category = new { category.Id, category.Name },
         provider = new { p.Id, p.DisplayName },
-        disclosure = "Portfolio demo: fictional services and simulated provider checks. Booking is not available yet."
+        disclosure = "Portfolio demo: fictional services and simulated provider checks. Bookings are fictional; no payment is collected."
     };
     private static async Task<Dictionary<string, string[]>> Validate(ListingInput input, Guid org, MarketplaceDbContext db)
     {
