@@ -1,3 +1,4 @@
+using Marketplace.Api.Providers;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -41,6 +42,7 @@ public static class OrganizationEndpoints
                 return Results.ValidationProblem(new Dictionary<string, string[]> { ["organization"] = ["Enter a name of 1–150 characters and choose Individual or Business."] });
             var organization = new Organization { Name = input.Name.Trim(), ProviderType = input.ProviderType };
             db.Organizations.Add(organization);
+            db.ProviderProfiles.Add(new ProviderProfile { OrganizationId = organization.Id, DisplayName = organization.Name, ProviderType = organization.ProviderType });
             db.OrganizationMemberships.Add(new OrganizationMembership { OrganizationId = organization.Id, UserId = userId, Role = "Owner" });
             Audit(db, organization.Id, userId, "organization.created", organization.Id.ToString());
             await db.SaveChangesAsync();

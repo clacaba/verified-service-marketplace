@@ -1,6 +1,6 @@
 # Milestone A API contract draft
 
-Status: Authentication, `/users/me`, and organization/membership routes are implemented. Profile and provider-verification routes remain design contracts. The matching machine-readable contract is `milestone-a.openapi.json`.
+Status: Authentication, `/users/me`, and organization/membership routes are implemented. Provider profile draft and category routes are also implemented. Provider-verification routes remain design contracts. The matching machine-readable contract is `milestone-a.openapi.json`.
 
 Base path: `/api/v1`. JSON uses camelCase; UUID identifiers and ISO-8601 UTC timestamps. Document bytes use multipart uploads, never JSON/base64.
 
@@ -54,7 +54,7 @@ All authentication POSTs, including anonymous registration, login, verification,
 
 ## Resource shapes and validation
 
-`ProviderProfile`: `id`, `organizationId`, `displayName`, `providerType` (Individual/Business), `biography`, `categoryIds`, `serviceArea`, optional `imageId`, `version`. Proposed limits: display name 1–150 characters, biography up to 4,000, service area 1–250, at least one active category. Trusted image references must belong to the organization.
+`ProviderProfile`: `id`, `organizationId`, `displayName`, `providerType` (Individual/Business), `biography`, `categoryIds`, `serviceArea`, optional `imageId`, `version`. Draft limits: display name 1–150 characters, biography up to 4,000, service area up to 250, up to 20 distinct active categories. Drafts may omit biography, area, and categories. `version` is a UUID and is returned as a quoted strong ETag; GET and successful PUT return ETag. PUT requires the exact latest If-Match (428 if missing, 412 if stale). `status` is always Draft; `readyForVerification` means basic fields are complete, not approved or published. Non-null imageId is rejected until authorized image uploads exist. Profile responses and browser proxy responses are no-store.
 
 `VerificationApplication`: `id`, `providerId`, `organizationId`, `status`, `submissionVersion`, nullable `submittedAt`, `documents`, `decisions`, `version`. Documents expose only private authorized metadata: ID, evidence type, safe filename, content type, size, uploaded time. Object keys never leave storage services.
 

@@ -1,3 +1,4 @@
+using Marketplace.Api.Providers;
 using Marketplace.Api.Identity;
 using Marketplace.Api.Organizations;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -12,9 +13,28 @@ public sealed class MarketplaceDbContext(DbContextOptions<MarketplaceDbContext> 
     public DbSet<OrganizationMembership> OrganizationMemberships => Set<OrganizationMembership>();
     public DbSet<OrganizationInvitation> OrganizationInvitations => Set<OrganizationInvitation>();
     public DbSet<OrganizationAuditEvent> OrganizationAuditEvents => Set<OrganizationAuditEvent>();
+    public DbSet<ProviderProfile> ProviderProfiles => Set<ProviderProfile>();
+    public DbSet<ServiceCategory> ServiceCategories => Set<ServiceCategory>();
+    public DbSet<ProviderCategory> ProviderCategories => Set<ProviderCategory>();
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.Entity<ProviderProfile>().HasIndex(x => x.OrganizationId).IsUnique();
+        builder.Entity<ProviderProfile>().HasOne<Organization>().WithMany().HasForeignKey(x => x.OrganizationId);
+        builder.Entity<ProviderProfile>().Property(x => x.DisplayName).HasMaxLength(150);
+        builder.Entity<ProviderProfile>().Property(x => x.ProviderType).HasMaxLength(20);
+        builder.Entity<ProviderProfile>().Property(x => x.Biography).HasMaxLength(4000);
+        builder.Entity<ProviderProfile>().Property(x => x.ServiceArea).HasMaxLength(250);
+        builder.Entity<ProviderProfile>().Property(x => x.Version).IsConcurrencyToken();
+        builder.Entity<ServiceCategory>().Property(x => x.Name).HasMaxLength(100);
+        builder.Entity<ServiceCategory>().HasData(
+            new ServiceCategory { Id = Guid.Parse("10000000-0000-0000-0000-000000000001"), Name = "Cleaning" },
+            new ServiceCategory { Id = Guid.Parse("10000000-0000-0000-0000-000000000002"), Name = "Plumbing" },
+            new ServiceCategory { Id = Guid.Parse("10000000-0000-0000-0000-000000000003"), Name = "Electrical" },
+            new ServiceCategory { Id = Guid.Parse("10000000-0000-0000-0000-000000000004"), Name = "Appliance repair" });
+        builder.Entity<ProviderCategory>().HasKey(x => new { x.ProfileId, x.CategoryId });
+        builder.Entity<ProviderProfile>().HasMany(x => x.Categories).WithOne().HasForeignKey(x => x.ProfileId);
+        builder.Entity<ProviderCategory>().HasOne<ServiceCategory>().WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<Account>().Property(x => x.DisplayName).HasMaxLength(150);
         builder.Entity<Account>().Property(x => x.AccountType).HasMaxLength(20);
         builder.Entity<Account>().HasIndex(x => x.NormalizedEmail).IsUnique();

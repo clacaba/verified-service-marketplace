@@ -1,3 +1,4 @@
+using Marketplace.Api.Providers;
 using Marketplace.Api.Data;
 using Marketplace.Api.Organizations;
 using Marketplace.Api.Identity;
@@ -16,8 +17,8 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment() && app.Configuration.GetValue<bool>("Database:ApplyMigrations")) { using var scope = app.Services.CreateScope(); await scope.ServiceProvider.GetRequiredService<MarketplaceDbContext>().Database.MigrateAsync(); }
 app.UseExceptionHandler(); app.UseStatusCodePages(); app.UseAuthentication(); app.UseAuthorization(); app.UseRateLimiter();
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false }); app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") });
-app.MapGet("/api/v1/platform", () => new { name = "Verified Service Marketplace", stage = "Authentication", featuresImplemented = true }); app.MapMarketplaceAuth();
-app.MapMarketplaceOrganizations(); app.Run();
+app.MapGet("/api/v1/platform", () => new { name = "Verified Service Marketplace", stage = "Provider drafts", featuresImplemented = true }); app.MapMarketplaceAuth();
+app.MapMarketplaceOrganizations(); app.MapMarketplaceProviders(); app.Run();
 public partial class Program { }
 public sealed class DatabaseHealthCheck(IServiceScopeFactory scopes) : IHealthCheck
 {

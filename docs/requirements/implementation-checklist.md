@@ -30,7 +30,9 @@ Source: [Master plan](../service-booking-marketplace-plan.md), sections 29–32.
 - [ ] Verify the complete browser/PostgreSQL/Mailpit journey with Docker.
 - [x] ORG-01: Organization ownership, invitations, and membership authorization; backend integration tests and frontend build pass.
 - [ ] Verify organization invitation delivery and acceptance end-to-end with PostgreSQL/Mailpit.
-- [ ] PROVIDER-01: Editable provider profile and drafts.
+- [x] PROVIDER-01 draft slice: Persistent private profiles, active categories, Owner editing/Staff read-only, version conflicts, audit, migration/backfill, and editor UI.
+- [ ] PROVIDER-01 follow-ups: Authorized image uploads and invalidation of future verification checks on material profile changes.
+- [ ] Verify profile migrations and browser save/reload flow with Docker/PostgreSQL.
 - [ ] VERIFY-01: Private evidence upload, immutable submissions, and revisions.
 - [ ] VERIFY-02: Administrative decisions, concurrency, audit, and reliable notifications.
 - [ ] VERIFY-03: Precise current public badges and demo disclosure.

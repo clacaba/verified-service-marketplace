@@ -9,7 +9,9 @@ Planning baseline and initial application foundation are available. The Next.js
 frontend connects to the ASP.NET Core API; PostgreSQL readiness checks and local
 Docker configuration are included. Registration, email verification, login,
 logout, and database-backed sessions are implemented. Organizations, owner/staff memberships, invitations, and membership authorization
-are implemented. Provider profiles and verification workflows are next.
+are implemented. Private provider profile drafts, active categories, and owner-only
+editing with version-conflict protection are available. Evidence submission and
+verification workflows are next.
 
 ## Local development
 
@@ -46,6 +48,7 @@ and authentication configuration.
 - [Milestone A wireframes](docs/architecture/milestone-a-wireframes.md)
 - [Milestone A API contract draft](docs/api/milestone-a-contract.md)
 - [Milestone A OpenAPI specification](docs/api/milestone-a.openapi.json)
+- [Provider profile drafts](docs/architecture/provider-profile-drafts.md)
 - [Local development foundation](docs/architecture/local-development.md)
 
 Product requirements, architecture decisions, API contracts, and diagrams will
