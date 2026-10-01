@@ -39,14 +39,16 @@ Source: [Master plan](../service-booking-marketplace-plan.md), sections 29–32.
 - [ ] Verify PostgreSQL/MinIO/ClamAV and browser multipart/download behavior with Docker.
 - [x] VERIFY-02: Operator-provisioned Reviewer access, review queue/details/claims, validated decisions/checks, optimistic concurrency, audit, recipient notifications, and transactional owner email queue.
 - [ ] Verify the provider → reviewer → correction → resubmission flow with Docker and a real browser.
-- [ ] VERIFY-03: Precise current public badges and demo disclosure.
+- [x] VERIFY-03: Explicit Owner publication, eligible public discovery/details, precise unexpired/unrevoked badges, privacy allowlist, and fictional demo disclosure; backend tests and frontend build pass.
+- [ ] Verify publication migration and provider-publication/browser journey with Docker/PostgreSQL.
 - [ ] Demonstrate the entire provider-registration-to-public-badge journey with fictional data.
 
 ## Later milestones
 
 - [ ] Catalog, search, properties, availability, and conflict-safe booking lifecycle.
 - [ ] Notifications and completed-booking reviews.
-- [ ] Scoped partner OAuth, idempotent bookings, rate limits, and signed webhooks.
+- [ ] Administrator MFA and production cookie/CSRF/origin hardening verification.
+- [ ] Scoped partner OAuth through an established identity provider, idempotent bookings, rate limits, and signed webhooks.
 - [ ] Deployment, seeded demos, API documentation, screenshots, and demonstration video.
 
 Checkboxes describe delivered work only. Planning documents do not imply implemented features.

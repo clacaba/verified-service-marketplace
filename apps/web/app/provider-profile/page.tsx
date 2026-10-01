@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { authRequest } from "../../lib/auth-client";
-import { profileRequest, ProfileError, type Profile } from "../../lib/profile-client";
+import { profileRequest, setPublication, ProfileError, type Profile } from "../../lib/profile-client";
 
 type Category = { id: string; name: string };
 export default function ProviderProfilePage() {
@@ -40,9 +40,22 @@ export default function ProviderProfilePage() {
     async function save(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault(); if (!profile || conflict) return;
         setBusy(true); setMessage("");
-        try { const result = await profileRequest(organizationId, profile, etag); setProfile(result.profile); setEtag(result.etag); setDirty(false); setMessage("Private draft saved. Nothing has been published."); }
+        try { const result = await profileRequest(organizationId, profile, etag); setProfile(result.profile); setEtag(result.etag); setDirty(false); setMessage("Profile saved. Material changes remove public visibility and require renewed verification."); }
         catch (error) { setMessage(error instanceof Error ? error.message : "Save failed."); if (error instanceof ProfileError && error.status === 412) setConflict(true); }
         finally { setBusy(false); }
+    }
+    async function publish(published: boolean) {
+        if (dirty || busy || !profile || !editable || conflict) return;
+        if (published && !window.confirm("Publish your saved name, biography, area, categories, and simulated badges publicly?")) return;
+        setBusy(true); setMessage("");
+        try {
+            await setPublication(organizationId, published, etag);
+            const result = await profileRequest(organizationId); setProfile(result.profile); setEtag(result.etag);
+            setMessage(published ? "Publication enabled. Public visibility still requires current verification." : "Profile unpublished.");
+        } catch (error) {
+            setMessage(error instanceof Error ? error.message : "Publication failed.");
+            if (error instanceof ProfileError && error.status === 412) setConflict(true);
+        } finally { setBusy(false); }
     }
     async function reload() {
         if (dirty && !window.confirm("Reload and discard your unsaved edits?")) return;
@@ -54,7 +67,7 @@ export default function ProviderProfilePage() {
     return <main className="auth-page">
         <Link href="/organizations" onClick={event => { if (dirty && !window.confirm("Leave without saving your edits?")) event.preventDefault(); }}>Organizations</Link>
         <h1>Provider profile draft</h1>
-        <p>This draft is private. Saving does not verify or publish your profile.</p>
+        <p>Saving does not verify your profile. Material changes clear publication and revoke existing checks.</p>
         {busy && !profile && <p>Loading profile…</p>}
         {profile && <><p>Status: Draft · {dirty ? "Unsaved changes" : "Saved"} · {editable ? "Owner editing" : "Staff read-only"}</p>
             <form onSubmit={save}><fieldset disabled={!editable || busy || conflict} className="profile-fields">
@@ -66,7 +79,14 @@ export default function ProviderProfilePage() {
                 <small>Biography, area, and categories may be left incomplete while drafting. Images will be added with the upload feature.</small>
                 {editable && <button disabled={!dirty || !etag}>Save draft</button>}
             </fieldset></form>
-            <p>{profile.readyForVerification ? "Saved draft has its basic fields complete. Evidence submission is the next feature." : "Complete biography, service area, and at least one category before evidence submission."}</p>
+            <p>{profile.readyForVerification ? "Saved profile has its basic fields complete. Submit evidence from your organization verification page." : "Complete biography, service area, and at least one category before evidence submission."}</p>
+            <section aria-label="Public profile publication">
+                <h2>Public profile</h2>
+                <p>{profile.publishedAt ? "Publication enabled; the public page is visible only while all required checks remain current." : "Not published. Approval alone does not publish your information."}</p>
+                {editable && <button type="button" disabled={busy || dirty || conflict || !etag} onClick={() => publish(!profile.publishedAt)}>{profile.publishedAt ? "Unpublish profile" : "Publish approved profile"}</button>}
+                {profile.publishedAt && <p><Link href={"/providers/" + profile.id} prefetch={false}>Open public profile</Link></p>}
+                <p>Demo checks are simulated, not real identity or licensing certification.</p>
+            </section>
             <button type="button" disabled={busy} onClick={reload}>{conflict ? "Reload latest draft (discard edits)" : "Reload saved draft"}</button>
         </>}
         <p role="status" aria-live="polite">{message}</p>

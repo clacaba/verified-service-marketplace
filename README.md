@@ -13,7 +13,7 @@ are implemented. Private provider profile drafts, active categories, and owner-o
 editing with version-conflict protection are available. Private evidence uploads, malware scanning, session-bound downloads, and immutable
 verification submissions are implemented for fictional demo files. Administrator
 review, decisions, notifications, and corrected resubmissions are implemented.
-Public profiles and precise verification badges are next.
+Explicit Owner publication, public provider discovery/details, and precise simulated verification badges are implemented.
 
 ## Local development
 
@@ -74,3 +74,7 @@ scripts/          Development and automation scripts
 Do not commit credentials, connection strings, API keys, real identity documents,
 or production customer information. Public demonstrations must use fictional data
 and sandbox integrations.
+
+
+
+Public provider profiles are available at `/providers` after an Owner explicitly publishes an approved profile. Badges describe simulated evidence checks only. See [publication and badge workflow](docs/architecture/public-provider-profiles.md). Authentication decisions and deferred administrator MFA/partner OAuth are in section 34 of the [project plan](docs/service-booking-marketplace-plan.md).

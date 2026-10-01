@@ -9,6 +9,7 @@ public sealed class ProviderProfile
     public string Biography { get; set; } = "";
     public string ServiceArea { get; set; } = "";
     public Guid Version { get; set; } = Guid.NewGuid();
+    public DateTime? PublishedAt { get; set; }
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public List<ProviderCategory> Categories { get; set; } = [];
 }

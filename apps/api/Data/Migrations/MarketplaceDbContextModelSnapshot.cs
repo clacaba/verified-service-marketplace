@@ -334,6 +334,9 @@ namespace Marketplace.Api.Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("ServiceArea")
                         .IsRequired()
                         .HasMaxLength(250)

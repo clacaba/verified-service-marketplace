@@ -1,6 +1,6 @@
 # Local development foundation
 
-Status: Foundation, authentication, organizations, profile drafts, and private evidence uploads/submissions implemented. Administrative review/decisions and corrected drafts are implemented; public badges remain planned.
+Status: Foundation, authentication, organizations, profile drafts, and private evidence uploads/submissions implemented. Administrative review/decisions and corrected drafts are implemented; explicit Owner publication and public profiles with precise simulated badges are implemented.
 
 ## Prerequisites
 
@@ -79,3 +79,9 @@ See [private verification evidence](private-verification-evidence.md) for the co
 ## Try administrator review
 
 Use a separate registered and verified account. A trusted operator must grant Reviewer access using the command in [administrator review and revisions](administrator-review-and-revisions.md). The shared /login page then leads to /account → Administrator review queue. No default administrative account or credential is seeded. See that guide for revocation, claims, decisions, notifications, correction drafts, and renewal.
+
+
+
+## Try public profiles
+
+After approval, open the Owner profile editor, save any changes, and explicitly publish the approved profile. Browse `/providers` anonymously. See [public provider profiles](public-provider-profiles.md) for prerequisites and badge semantics. New database migration `PublicProviderPublication` defaults existing profiles to private; run the usual host migration command or rebuild the Development Compose API to apply it.

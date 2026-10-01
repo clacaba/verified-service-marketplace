@@ -11,6 +11,7 @@ public static class ProviderEndpoints
     public sealed record ProfileInput(string DisplayName, string ProviderType, string? Biography, Guid[]? CategoryIds, string? ServiceArea, Guid? ImageId);
     public static void MapMarketplaceProviders(this WebApplication app)
     {
+        app.MapPublicProviders();
         app.MapGet("/api/v1/categories", async (int? page, int? pageSize, MarketplaceDbContext db) =>
         {
             var current = page ?? 1; var size = pageSize ?? 20;
@@ -64,6 +65,7 @@ public static class ProviderEndpoints
                 || !profile.Categories.Select(x => x.CategoryId).Order().SequenceEqual(categoryIds.Order());
             if (materiallyChanged)
             {
+                profile.PublishedAt = null;
                 var checks = await db.VerificationChecks.Where(x => x.OrganizationId == organizationId && x.RevokedAt == null).ToListAsync();
                 foreach (var check in checks) check.RevokedAt = DateTime.UtcNow;
             }
@@ -103,6 +105,7 @@ public static class ProviderEndpoints
         profile.Version,
         profile.UpdatedAt,
         status = "Draft",
+        profile.PublishedAt,
         readyForVerification = !string.IsNullOrWhiteSpace(profile.Biography) && !string.IsNullOrWhiteSpace(profile.ServiceArea) && profile.Categories.Count > 0
     };
 }

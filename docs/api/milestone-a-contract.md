@@ -1,12 +1,12 @@
 # Milestone A API contract draft
 
-Status: Authentication, `/users/me`, and organization/membership routes are implemented. Provider profile draft and category routes are also implemented. Verification draft/history, private documents, access/download, and submission routes are implemented. Administrator review, decisions/checks, notifications, corrected drafts, and invalidated-approval renewal are implemented. Public badges/profiles remain design contracts. The matching machine-readable contract is `milestone-a.openapi.json`.
+Status: Authentication, `/users/me`, and organization/membership routes are implemented. Provider profile draft and category routes are also implemented. Verification draft/history, private documents, access/download, and submission routes are implemented. Administrator review, decisions/checks, notifications, corrected drafts, and invalidated-approval renewal are implemented. Explicit publication, public discovery/details, and precise simulated badges are implemented. The matching machine-readable contract is `milestone-a.openapi.json`.
 
 Base path: `/api/v1`. JSON uses camelCase; UUID identifiers and ISO-8601 UTC timestamps. Document bytes use multipart uploads, never JSON/base64.
 
 ## Shared conventions
 
-- Browser authentication: proposed HttpOnly secure session cookie; mutations require a CSRF token validated by the server. Only register, login, email verification, and public profile discovery are anonymous.
+- Browser authentication: implemented HttpOnly secure session cookie; mutations require a CSRF token validated by the server. Only register, login, email verification, and public profile discovery are anonymous.
 - Check active membership and operation permissions for each organization route. Administrative routes require platform reviewer permissions. Return 404 for resources the caller must not be able to discover.
 - Errors use `application/problem+json`: `type`, `title`, `status`, `detail`, `instance`, `requestId`, and optional field-keyed `errors`. Exclude stack traces and private data.
 - Lists return `{ items, page, pageSize, totalCount }`. Default page size 20, maximum 100; invalid pagination returns 400. Review queue sorts by submitted time then ID for stable ordering.
@@ -47,6 +47,8 @@ Base path: `/api/v1`. JSON uses camelCase; UUID identifiers and ISO-8601 UTC tim
 | POST `/admin/verifications/{applicationId}/decisions` | Reviewer | Current assigned Reviewer lease + If-Match; decision/checks/reason; atomic audit, checks, notifications, queued email; 200. |
 | POST `/verification-documents/{documentId}/access` | Authorized provider member or reviewer | Session-bound relative retrieval URL plus token for X-Evidence-Access; expiry; audit access; no-store. |
 | GET `/verification-documents/{documentId}/content` | Original session + X-Evidence-Access grant + current membership | Private attachment download; expired/invalid grants or unauthorized documents return 404. |
+| POST `/organizations/{organizationId}/provider-profile/publication` | Owner | `{ published: true/false }`; CSRF + exact profile If-Match; approval alone never publishes. |
+| GET `/providers` | Anonymous | Eligible explicitly published profiles; page/pageSize/categoryId; alphabetic name/ID order. |
 | GET `/providers/{providerId}` | Anonymous | Approved public projection and current badges; otherwise 404. |
 | GET `/notifications` | Session | Own notifications, paginated. |
 | PATCH `/notifications/{notificationId}` | Recipient session | `{ read: true }`; 204. |
@@ -61,7 +63,7 @@ All authentication POSTs, including anonymous registration, login, verification,
 
 `DecisionRequest`: `decision` (Approved/Rejected/AdditionalInformationRequired), `reason`, `checks` containing `type` and optional `expiresAt`. Approval requires all configured evidence/checks. Rejection and information requests require a reason of 1–2,000 characters. Demo simulation flags are server-controlled.
 
-`PublicProvider`: `id`, `displayName`, `biography`, public image, categories, service area, badges. Each badge exposes `type`, `simulated`, optional `expiresAt`, and explanatory text. Exclude membership, private applications, documents, emails, and sensitive identifiers.
+`PublicProvider`: `id`, `displayName`, `providerType`, `biography`, `categories`, `serviceArea`, `badges`, and `disclosure`. Each badge exposes `type`, `label`, `expiresAt`, and `simulated`. Images are not implemented in this milestone. Exclude membership, private applications, documents, emails, and sensitive identifiers.
 
 Implemented demo document policy: PDF/JPEG/PNG, 10 MiB per file, one file per request, at most 20 per application. Validate MIME against signatures/end markers and require a clean ClamAV scan before private storage. Format detection is not full structural parsing. Metadata uses `fileName`, `size`, `expiresAt`, and `scanStatus=Clean`; it never exposes object keys. Default draft/submitted file retention is 30/90 days; access grants expire in 60 seconds and are bound to the authenticated session. Required types depend on Individual/Business and Plumbing/Electrical categories; see [private verification evidence](../architecture/private-verification-evidence.md). Rules are fictional demo defaults. A submitted snapshot is locked; draft evidence may be removed. Corrected revisions now create fresh linked drafts and preserve earlier evidence/snapshots/decisions.
 
@@ -83,3 +85,11 @@ Applications expose parentApplicationId, revisionNumber, reviewStartedBy, review
 Notifications return id, applicationId, organizationId, message, createdAt, and read. Recipient ownership AND active source membership govern list/mark-read. Notification PATCH is an idempotent mark-read operation without ETag. Private owner email is recorded transactionally in the existing encrypted retry queue; it contains only a generic update link.
 
 See [administrator review and revisions](../architecture/administrator-review-and-revisions.md) for provisioning commands, walkthrough, validation, and production limitations.
+
+
+
+## Implemented public publication
+
+Private profile responses include nullable `publishedAt`. Owner publication uses the exact current profile ETag; material edits clear publication consent and revoke checks. Public eligibility requires a complete profile, active categories, verified active Owner, active Approved application, and every current policy-required check from that approval. Expired/revoked checks hide the profile on subsequent requests. Public GETs and server fetches are no-store. Approval never publishes automatically. See [public provider profiles](../architecture/public-provider-profiles.md) for detailed workflow and limitations.
+
+Website sessions remain cookies. Administrator MFA and identity-provider-managed partner OAuth remain planned, not implemented. JWT is an optional future access-token format, not the human login flow.

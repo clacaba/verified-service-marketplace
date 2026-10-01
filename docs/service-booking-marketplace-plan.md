@@ -106,7 +106,7 @@ Purpose: maintain trust, safety, and platform operations.
 - ASP.NET Core Web API and C#
 - Entity Framework Core and PostgreSQL
 - ASP.NET Core Identity
-- JWT access tokens and rotating refresh tokens
+- Revocable HttpOnly cookie sessions for the first-party website; OAuth access tokens for future partner integrations
 - FluentValidation
 - SignalR for real-time messages and status updates
 - Hangfire or Quartz.NET for background jobs
@@ -157,8 +157,8 @@ Next.js frontend             Third-party client applications
 2. The backend validates the request and creates the account.
 3. The backend sends an expiring email-verification link.
 4. The user verifies the email address and signs in.
-5. The backend issues a short-lived access token and a protected refresh token.
-6. The frontend attaches the access token to authorized API requests.
+5. The backend issues an HttpOnly session cookie and records a revocable session in the database.
+6. The browser sends its session cookie through the first-party BFF; mutations also require a current CSRF token.
 7. The backend checks the user's role, permissions, and ownership of the requested resource.
 
 ### Suggested roles
@@ -1147,3 +1147,32 @@ After this milestone, implement service listings and the booking lifecycle. Extr
 12. Add the service catalog, availability, and booking lifecycle.
 13. Add the partner API, sandbox client, and signed webhooks.
 14. Complete portfolio documentation, deployment, and demonstration materials.
+
+
+
+## 34. Authentication strategy and public-profile delivery
+
+### Authentication decisions
+
+- Website: retain ASP.NET Core Identity and database-backed revocable cookie sessions. JWT is not a replacement for this browser session design.
+- Production: HTTPS, Secure/HttpOnly/SameSite cookies, CSRF protection, explicit trusted origins, secure persistent Data Protection keys, and session expiration/revocation tests.
+- Reviewers/administrators: require MFA before public production deployment. MFA is planned, not implemented by this milestone.
+- Partner backends: OAuth 2.0 Client Credentials with scoped, short-lived, audience-restricted access tokens from an established identity provider. Do not build a custom OAuth authorization server.
+- User-delegated integrations: OpenID Connect for login and OAuth Authorization Code with PKCE for delegated access, only when this capability is needed.
+- JWT is an optional token format; validate issuer, audience, signature, lifetime, and permitted algorithms if selected. Opaque access tokens are also possible.
+- API keys are a deferred sandbox-only option, not a second production partner authentication system. Never embed client secrets in browser code.
+- Every request must enforce organization boundaries and permissions; partner requests additionally enforce scopes. Properties are resources within organizations, not the isolation boundary.
+
+Acceptance criteria for the partner/security milestones: deny expired/invalid/wrong-audience tokens, insufficient scopes, cross-organization access, and revoked sessions; require MFA for privileged access; cover credential rotation and revocation using the selected identity provider. These future capabilities must not be advertised as already implemented.
+
+### Public provider profiles and precise badges (current milestone)
+
+- Approval does not automatically publish personal profile information. An active Owner explicitly publishes/unpublishes the saved profile using CSRF and its exact current ETag.
+- Public eligibility requires a complete profile, active categories, a verified active Owner, the active Approved application, and all current policy-required checks from that approval.
+- Public GET /api/v1/providers supports bounded pagination and category filtering; GET /api/v1/providers/{providerId} returns only the allowlisted public fields. Ineligible/private profiles return 404.
+- Material profile changes revoke checks and clear publication consent. Renewed approval requires explicit republication after such edits.
+- Expired/revoked checks, inactive categories, or a replacement application hide the profile on subsequent requests, without relying on cleanup jobs or cached approval flags.
+- Badges name only the check performed (identity evidence, business-registration evidence, trade-qualification evidence), state simulation explicitly, and show expiration. Never imply a background check, legal certification, guaranteed safety, or service quality.
+- Evidence, filenames, hashes, storage keys, reviewer identities/reasons, memberships, emails, and internal organization IDs remain private.
+- Existing loaded pages may remain visible until refreshed; responses and server-side fetches are no-store. Booking must independently recheck eligibility when implemented.
+- Automated API tests, frontend build/typecheck, and proxy smoke tests are required. Real Docker/PostgreSQL and interactive browser validation remain a separate pending acceptance check.

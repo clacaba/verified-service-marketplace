@@ -29,6 +29,11 @@ const upstream = http.createServer(async (request, response) => {
         response.setHeader("X-Content-Type-Options", "nosniff");
         response.end(evidenceBytes); return;
     }
+    if (request.url.startsWith("/api/v1/providers")) {
+        response.setHeader("Content-Type", "application/json");
+        const provider = { id: organization, displayName: "Demo Provider", providerType: "Individual", biography: "Fictional services.", serviceArea: "Demo area", categories: [{id: organization, name: "Cleaning"}], badges: [{type: "Identity", label: "Identity evidence reviewed (simulated)", expiresAt: "2099-01-01T00:00:00Z", simulated: true}], disclosure: "Fictional simulated checks only." };
+        response.end(JSON.stringify(request.url.includes("/providers/") ? provider : {items: [provider], totalCount: 1})); return;
+    }
     response.setHeader("Content-Type", "application/json"); response.end("{}");
 });
 upstream.listen(0, "127.0.0.1"); await once(upstream, "listening");
@@ -66,7 +71,15 @@ try {
     assert.equal((await fetch(origin + "/api/v1/organizations/" + organization + "/verifications/" + application + "/revisions", { method: "POST", headers: { Origin: origin, "Content-Type": "application/json", "X-CSRF-Token": "test-csrf" }, body: "{}" })).status, 200);
     assert.equal((await fetch(origin + "/api/v1/notifications/" + document, { method: "PATCH", headers: { Origin: origin, "Content-Type": "application/json", "X-CSRF-Token": "test-csrf" }, body: '{"read":true}' })).status, 200);
     assert.equal((await fetch(origin + "/api/v1/admin/unknown")).status, 404);
-    console.log("PASS: reviewer/notification pages and allowed review/revision/PATCH proxy routes; verification page HTTP 200, multipart byte/header forwarding, binary private download, ETag/no-store forwarding, origin protection, and route allowlist.");
+    const directory = await fetch(origin + "/providers"); assert.equal(directory.status, 200);
+    assert.match(await directory.text(), /Identity evidence reviewed \(simulated\)/);
+    const publicProfile = await fetch(origin + "/providers/" + organization); assert.equal(publicProfile.status, 200);
+    assert.match(await publicProfile.text(), /not a background check/);
+    assert.equal((await fetch(origin + "/api/v1/providers?pageSize=1")).status, 200);
+    assert.equal((await fetch(origin + "/api/v1/providers/" + organization)).status, 200);
+    assert.equal((await fetch(origin + "/api/v1/providers/" + organization, {method: "POST", headers: {Origin: origin}})).status, 404);
+    assert.equal((await fetch(origin + "/api/v1/organizations/" + organization + "/provider-profile/publication", { method: "POST", headers: {Origin: origin, "Content-Type": "application/json", "X-CSRF-Token": "test-csrf", "If-Match": '"version-one"'}, body: '{"published":true}' })).status, 200);
+    console.log("PASS: public directory/detail content, publication/read-only proxy allowlist; reviewer/notification pages and allowed review/revision/PATCH proxy routes; verification page HTTP 200, multipart byte/header forwarding, binary private download, ETag/no-store forwarding, origin protection, and route allowlist.");
 } finally {
     const stopped = once(web, "exit"); web.kill(); await stopped;
     await new Promise(done => upstream.close(done));

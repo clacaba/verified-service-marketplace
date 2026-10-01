@@ -1,6 +1,6 @@
 # Administrator review, decisions, and corrected submissions
 
-Status: Reviewer access, queue/details, claimed reviews, decisions, in-app notifications, queued owner emails, corrected drafts, and invalidated-approval renewal implemented. Public profiles/badges are next.
+Status: Reviewer access, queue/details, claimed reviews, decisions, in-app notifications, queued owner emails, corrected drafts, and invalidated-approval renewal implemented. Public profiles and precise simulated badges are implemented; see [publication workflow](public-provider-profiles.md).
 
 ## Reviewer access and shared login
 
@@ -70,4 +70,4 @@ Backend tests use SQLite and storage/scanner doubles. Tests cover explicit provi
 
 Frontend typecheck/build and an HTTP proxy smoke test cover the review/notification pages, allowlisted review/revision routes, PATCH forwarding, and earlier binary upload/download behavior. The PostgreSQL migration and incremental deployment SQL are included. Actual Docker/PostgreSQL/MinIO/ClamAV/Mailpit and interactive browser journeys still require verification.
 
-Use fictional demo records only. Public badges, automatic expiry/suspension state transitions, production reviewer provisioning/MFA, distributed worker leases, notification cleanup, and partner event delivery are not implemented by this slice.
+Use fictional demo records only. Public profiles/badges are delivered in the following milestone. Automatic expiry/suspension state transitions, production reviewer provisioning/MFA, distributed worker leases, notification cleanup, and partner event delivery are not implemented by this slice.

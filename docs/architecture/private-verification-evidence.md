@@ -1,6 +1,6 @@
 # Private verification evidence and submissions
 
-Status: Demo upload/submission slice implemented. Administrator review, decisions, revision drafts, and notifications are now implemented; [review workflow](administrator-review-and-revisions.md). Public badges are not implemented.
+Status: Demo upload/submission slice implemented. Administrator review, decisions, revision drafts, and notifications are now implemented; [review workflow](administrator-review-and-revisions.md). Public profiles and precise simulated badges are implemented; see [publication workflow](public-provider-profiles.md).
 
 ## Demo evidence policy
 
