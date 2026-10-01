@@ -1,0 +1,8 @@
+"use client";
+import {useEffect,useState} from "react";import Link from "next/link";import {useRouter} from "next/navigation";import {authRequest,type UserSummary} from "../../lib/auth-client";
+export default function Account(){const router=useRouter();const [user,setUser]=useState<UserSummary|null>(null);const [message,setMessage]=useState("");const [busy,setBusy]=useState(false);
+ useEffect(()=>{authRequest("users/me").then(setUser).catch(()=>setMessage("Your session is unavailable. Please sign in."));},[]);
+ async function resend(){if(!user)return;setBusy(true);try{await authRequest("auth/resend-verification",{email:user.email});setMessage("If verification is needed, a new email will arrive shortly.");}catch(error){setMessage(error instanceof Error?error.message:"Request failed.");}finally{setBusy(false);}}
+ async function logout(){setBusy(true);try{await authRequest("auth/logout",{});setUser(null);router.replace("/login");router.refresh();}catch(error){setMessage(error instanceof Error?error.message:"Request failed.");setBusy(false);}}
+ return <main className="auth-page"><Link href="/">Home</Link><h1>Your account</h1>{user?<><h2>Hello, {user.name}</h2><p>{user.email}</p><p>Account: {user.capabilities.join(", ")}</p><p>Email: {user.emailConfirmed?"Verified":"Awaiting verification"}</p>{!user.emailConfirmed&&<button onClick={resend} disabled={busy}>Resend verification email</button>}<p><Link href="/organizations">Manage your organizations and staff</Link></p><p>Provider profiles are the next development milestone.</p><button onClick={logout} disabled={busy}>Sign out</button></>:<><p>{message||"Loading your account…"}</p><Link href="/login">Sign in</Link></>}<p role="status" aria-live="polite">{user&&message}</p></main>;
+}
