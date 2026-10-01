@@ -1,3 +1,4 @@
+using Marketplace.Api.Properties;
 using Marketplace.Api.Catalog;
 using Marketplace.Api.Review;
 using Marketplace.Api.Verification;
@@ -10,6 +11,7 @@ namespace Marketplace.Api.Data;
 
 public sealed class MarketplaceDbContext(DbContextOptions<MarketplaceDbContext> options) : IdentityDbContext<Account>(options)
 {
+    public DbSet<CustomerProperty> CustomerProperties => Set<CustomerProperty>();
     public DbSet<ServiceImage> ServiceImages => Set<ServiceImage>();
     public DbSet<ServiceImageDeletion> ServiceImageDeletions => Set<ServiceImageDeletion>();
     public DbSet<ServiceListing> ServiceListings => Set<ServiceListing>();
@@ -32,6 +34,16 @@ public sealed class MarketplaceDbContext(DbContextOptions<MarketplaceDbContext> 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.Entity<CustomerProperty>().HasOne<Account>().WithMany().HasForeignKey(p => p.CustomerId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<CustomerProperty>().Property(p => p.Version).IsConcurrencyToken();
+        builder.Entity<CustomerProperty>().Property(p => p.Label).HasMaxLength(80);
+        builder.Entity<CustomerProperty>().Property(p => p.AddressLine1).HasMaxLength(200);
+        builder.Entity<CustomerProperty>().Property(p => p.AddressLine2).HasMaxLength(200);
+        builder.Entity<CustomerProperty>().Property(p => p.City).HasMaxLength(100);
+        builder.Entity<CustomerProperty>().Property(p => p.Region).HasMaxLength(100);
+        builder.Entity<CustomerProperty>().Property(p => p.PostalCode).HasMaxLength(20);
+        builder.Entity<CustomerProperty>().Property(p => p.CountryCode).HasMaxLength(2);
+        builder.Entity<CustomerProperty>().HasIndex(p => new { p.CustomerId, p.ArchivedAt });
         builder.Entity<ServiceListing>().HasMany(x => x.Images).WithOne().HasForeignKey(x => x.ServiceId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<ServiceImage>().Property(x => x.AltText).HasMaxLength(150);
         builder.Entity<ServiceImage>().Property(x => x.ObjectKey).HasMaxLength(200);

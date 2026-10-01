@@ -1,3 +1,4 @@
+using Marketplace.Api.Properties;
 using Marketplace.Api.Catalog;
 using Marketplace.Api.Review;
 using Marketplace.Api.Verification;
@@ -42,7 +43,7 @@ if (app.Environment.IsDevelopment() && app.Configuration.GetValue<bool>("Databas
 app.UseExceptionHandler(); app.UseStatusCodePages(); app.UseAuthentication(); app.UseAuthorization(); app.UseRateLimiter();
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false }); app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") });
 app.MapGet("/api/v1/platform", () => new { name = "Verified Service Marketplace", stage = "Service catalog", featuresImplemented = true }); app.MapMarketplaceAuth();
-app.MapMarketplaceOrganizations(); app.MapMarketplaceProviders(); app.MapMarketplaceVerification(); app.MapMarketplaceReview(); app.MapMarketplaceCatalog(); app.Run();
+app.MapMarketplaceOrganizations(); app.MapMarketplaceProviders(); app.MapMarketplaceVerification(); app.MapMarketplaceReview(); app.MapMarketplaceCatalog(); app.MapMarketplaceProperties(); app.Run();
 public partial class Program { }
 public sealed class DatabaseHealthCheck(IServiceScopeFactory scopes) : IHealthCheck
 {

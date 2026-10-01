@@ -2,6 +2,8 @@ import type { NextRequest } from "next/server";
 export const runtime = "nodejs";
 const permitted = new Set(["GET auth/csrf", "POST auth/register", "POST auth/login", "POST auth/logout", "POST auth/verify-email", "POST auth/resend-verification", "GET users/me", "GET categories"]);
 const uuid = "[0-9a-f-]{36}";
+const propertyDetail = new RegExp("^properties/" + uuid + "$", "i");
+const propertyArchive = new RegExp("^properties/" + uuid + "/archive$", "i");
 const profile = new RegExp("^organizations/" + uuid + "/provider-profile$", "i");
 const organization = new RegExp("^organizations/" + uuid + "(/members)?$", "i");
 const invitations = new RegExp("^organizations/" + uuid + "/invitations$", "i");
@@ -47,6 +49,9 @@ async function readBody(request: NextRequest): Promise<ArrayBuffer | undefined> 
 async function forward(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
     const { path } = await context.params; const route = path.join("/"); const method = request.method;
     const allowed = permitted.has(method + " " + route)
+        || (method === "GET" && (route === "properties" || propertyDetail.test(route)))
+        || (method === "POST" && (route === "properties" || propertyArchive.test(route)))
+        || (method === "PUT" && propertyDetail.test(route))
         || (method === "POST" && (route === "organizations" || route === "invitations/accept" || invitations.test(route) || verificationList.test(route) || verificationMutation.test(route) || documentAccess.test(route) || adminAction.test(route) || publication.test(route) || catalogList.test(route) || catalogAction.test(route) || imageUpload.test(route)))
         || (method === "GET" && (organization.test(route) || verificationList.test(route) || verificationDetail.test(route) || documentContent.test(route) || adminQueue.test(route) || adminDetail.test(route) || route === "notifications" || route === "providers" || publicProvider.test(route) || route === "services" || publicService.test(route) || catalogList.test(route) || catalogDetail.test(route) || privateImageContent.test(route) || publicImageContent.test(route)))
         || (["GET", "PUT"].includes(method) && profile.test(route))
