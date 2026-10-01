@@ -37,10 +37,9 @@ public sealed class S3EvidenceStore(IConfiguration config, IWebHostEnvironment e
         try
         {
             var policy = await client.GetBucketPolicyAsync(new GetBucketPolicyRequest { BucketName = Bucket }, ct);
-            // Dedicated demo bucket has no policy. Fail closed if anyone adds one.
-            if (!string.IsNullOrWhiteSpace(policy.Policy)) throw new EvidenceUnavailableException();
+            PrivateBucketPolicy.Validate(policy.HttpStatusCode, policy.Policy);
         }
-        catch (AmazonS3Exception e) when (e.ErrorCode == "NoSuchBucketPolicy") { }
+        catch (AmazonS3Exception e) when (e.StatusCode == HttpStatusCode.NotFound && e.ErrorCode == "NoSuchBucketPolicy") { }
     }
     public async Task Put(string key, byte[] bytes, CancellationToken ct)
     {
