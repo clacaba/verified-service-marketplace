@@ -1,3 +1,4 @@
+using Marketplace.Api.Catalog;
 using Marketplace.Api.Review;
 using Marketplace.Api.Verification;
 using Marketplace.Api.Providers;
@@ -9,6 +10,7 @@ namespace Marketplace.Api.Data;
 
 public sealed class MarketplaceDbContext(DbContextOptions<MarketplaceDbContext> options) : IdentityDbContext<Account>(options)
 {
+    public DbSet<ServiceListing> ServiceListings => Set<ServiceListing>();
     public DbSet<AccountSession> AccountSessions => Set<AccountSession>();
     public DbSet<VerificationEmail> VerificationEmails => Set<VerificationEmail>();
     public DbSet<Organization> Organizations => Set<Organization>();
@@ -28,6 +30,22 @@ public sealed class MarketplaceDbContext(DbContextOptions<MarketplaceDbContext> 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.Entity<ServiceListing>().HasOne<Organization>().WithMany().HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<ServiceListing>().HasOne<ServiceCategory>().WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<ServiceListing>().Property(x => x.Title).HasMaxLength(150);
+        builder.Entity<ServiceListing>().Property(x => x.Description).HasMaxLength(4000);
+        builder.Entity<ServiceListing>().Property(x => x.ServiceArea).HasMaxLength(250);
+        builder.Entity<ServiceListing>().Property(x => x.Currency).HasMaxLength(3);
+        builder.Entity<ServiceListing>().Property(x => x.Status).HasMaxLength(20);
+        builder.Entity<ServiceListing>().Property(x => x.Version).IsConcurrencyToken();
+        builder.Entity<ServiceListing>().HasIndex(x => new { x.OrganizationId, x.Status });
+        builder.Entity<ServiceListing>().HasIndex(x => new { x.Status, x.CategoryId, x.PriceMinor });
+        builder.Entity<ServiceListing>().ToTable(t => {
+            t.HasCheckConstraint("CK_ServiceListing_Price", "\"PriceMinor\" >= 1 AND \"PriceMinor\" <= 100000000");
+            t.HasCheckConstraint("CK_ServiceListing_Duration", "\"DurationMinutes\" >= 15 AND \"DurationMinutes\" <= 1440 AND \"DurationMinutes\" % 15 = 0");
+            t.HasCheckConstraint("CK_ServiceListing_Currency", "\"Currency\" = 'PHP'");
+            t.HasCheckConstraint("CK_ServiceListing_Status", "\"Status\" IN ('Draft', 'Published', 'Archived')");
+        });
         builder.Entity<VerificationApplication>().HasOne<VerificationApplication>().WithMany().HasForeignKey(x => x.ParentApplicationId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<VerificationApplication>().HasIndex(x => x.ParentApplicationId).IsUnique().HasFilter("\"ParentApplicationId\" IS NOT NULL");
         builder.Entity<VerificationApplication>().HasOne<Account>().WithMany().HasForeignKey(x => x.ReviewStartedBy).OnDelete(DeleteBehavior.Restrict);

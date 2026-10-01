@@ -18,6 +18,10 @@ const adminAction = new RegExp("^admin/verifications/" + uuid + "/(start-review|
 const notification = new RegExp("^notifications/" + uuid + "$", "i");
 const publicProvider = new RegExp("^providers/" + uuid + "$", "i");
 const publication = new RegExp("^organizations/" + uuid + "/provider-profile/publication$", "i");
+const publicService = new RegExp("^services/" + uuid + "$", "i");
+const catalogList = new RegExp("^organizations/" + uuid + "/services$", "i");
+const catalogDetail = new RegExp("^organizations/" + uuid + "/services/" + uuid + "$", "i");
+const catalogAction = new RegExp("^organizations/" + uuid + "/services/" + uuid + "/(publication|archive)$", "i");
 class PayloadTooLarge extends Error {}
 async function readBody(request: NextRequest): Promise<ArrayBuffer | undefined> {
     if (request.method === "GET" || !request.body) return undefined;
@@ -39,9 +43,10 @@ async function readBody(request: NextRequest): Promise<ArrayBuffer | undefined> 
 async function forward(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
     const { path } = await context.params; const route = path.join("/"); const method = request.method;
     const allowed = permitted.has(method + " " + route)
-        || (method === "POST" && (route === "organizations" || route === "invitations/accept" || invitations.test(route) || verificationList.test(route) || verificationMutation.test(route) || documentAccess.test(route) || adminAction.test(route) || publication.test(route)))
-        || (method === "GET" && (organization.test(route) || verificationList.test(route) || verificationDetail.test(route) || documentContent.test(route) || adminQueue.test(route) || adminDetail.test(route) || route === "notifications" || route === "providers" || publicProvider.test(route)))
+        || (method === "POST" && (route === "organizations" || route === "invitations/accept" || invitations.test(route) || verificationList.test(route) || verificationMutation.test(route) || documentAccess.test(route) || adminAction.test(route) || publication.test(route) || catalogList.test(route) || catalogAction.test(route)))
+        || (method === "GET" && (organization.test(route) || verificationList.test(route) || verificationDetail.test(route) || documentContent.test(route) || adminQueue.test(route) || adminDetail.test(route) || route === "notifications" || route === "providers" || publicProvider.test(route) || route === "services" || publicService.test(route) || catalogList.test(route) || catalogDetail.test(route)))
         || (["GET", "PUT"].includes(method) && profile.test(route))
+        || (method === "PUT" && catalogDetail.test(route))
         || (method === "PATCH" && notification.test(route))
         || (method === "DELETE" && (member.test(route) || documentRemoval.test(route)));
     if (!allowed) return Response.json({ title: "Resource unavailable" }, { status: 404 });

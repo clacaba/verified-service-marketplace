@@ -93,3 +93,9 @@ See [administrator review and revisions](../architecture/administrator-review-an
 Private profile responses include nullable `publishedAt`. Owner publication uses the exact current profile ETag; material edits clear publication consent and revoke checks. Public eligibility requires a complete profile, active categories, verified active Owner, active Approved application, and every current policy-required check from that approval. Expired/revoked checks hide the profile on subsequent requests. Public GETs and server fetches are no-store. Approval never publishes automatically. See [public provider profiles](../architecture/public-provider-profiles.md) for detailed workflow and limitations.
 
 Website sessions remain cookies. Administrator MFA and identity-provider-managed partner OAuth remain planned, not implemented. JWT is an optional future access-token format, not the human login flow.
+
+
+
+## Core service catalog (implemented)
+
+See [service catalog](../architecture/service-catalog.md) for authorized organization service drafts, exact ETags, publication/archive transitions, fixed PHP centavo prices, duration/category/area validation, public search filters/sorting/pagination, and public privacy projection. The matching catalog paths and schemas are included in this OpenAPI document. Images and booking are not implemented; CATALOG-01 and SEARCH-01 remain partial until their documented follow-ups are delivered.

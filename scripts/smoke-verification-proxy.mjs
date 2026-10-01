@@ -29,6 +29,15 @@ const upstream = http.createServer(async (request, response) => {
         response.setHeader("X-Content-Type-Options", "nosniff");
         response.end(evidenceBytes); return;
     }
+    if (request.url.startsWith("/api/v1/categories")) {
+        response.setHeader("Content-Type", "application/json");
+        response.end(JSON.stringify({items: [{id: organization, name: "Cleaning"}], page: 1, pageSize: 100, totalCount: 1})); return;
+    }
+    if (request.url.startsWith("/api/v1/services")) {
+        response.setHeader("Content-Type", "application/json");
+        const offer = {id: application, title: "Demo cleaning", description: "Fictional offer.", priceMinor: 25000, currency: "PHP", durationMinutes: 60, serviceArea: "Demo area", category: {id: organization, name: "Cleaning"}, provider: {id: organization, displayName: "Demo Provider"}, disclosure: "Fictional offer with simulated checks."};
+        response.end(JSON.stringify(request.url.includes("/services/") ? offer : {items: [offer], totalCount: 1})); return;
+    }
     if (request.url.startsWith("/api/v1/providers")) {
         response.setHeader("Content-Type", "application/json");
         const provider = { id: organization, displayName: "Demo Provider", providerType: "Individual", biography: "Fictional services.", serviceArea: "Demo area", categories: [{id: organization, name: "Cleaning"}], badges: [{type: "Identity", label: "Identity evidence reviewed (simulated)", expiresAt: "2099-01-01T00:00:00Z", simulated: true}], disclosure: "Fictional simulated checks only." };
@@ -79,7 +88,24 @@ try {
     assert.equal((await fetch(origin + "/api/v1/providers/" + organization)).status, 200);
     assert.equal((await fetch(origin + "/api/v1/providers/" + organization, {method: "POST", headers: {Origin: origin}})).status, 404);
     assert.equal((await fetch(origin + "/api/v1/organizations/" + organization + "/provider-profile/publication", { method: "POST", headers: {Origin: origin, "Content-Type": "application/json", "X-CSRF-Token": "test-csrf", "If-Match": '"version-one"'}, body: '{"published":true}' })).status, 200);
-    console.log("PASS: public directory/detail content, publication/read-only proxy allowlist; reviewer/notification pages and allowed review/revision/PATCH proxy routes; verification page HTTP 200, multipart byte/header forwarding, binary private download, ETag/no-store forwarding, origin protection, and route allowlist.");
+    assert.equal((await fetch(origin + "/catalog?organizationId=" + organization)).status, 200);
+    const services = await fetch(origin + "/services?q=cleaning&categoryId=&minPriceMinor="); assert.equal(services.status, 200);
+    assert.ok((await services.text()).includes("Demo cleaning"));
+    const servicePage = await fetch(origin + "/services/" + application); assert.equal(servicePage.status, 200);
+    assert.ok((await servicePage.text()).includes("Fictional offer"));
+    assert.equal((await fetch(origin + "/services/not-a-uuid")).status, 404);
+    assert.equal((await fetch(origin + "/api/v1/services?sort=priceAsc")).status, 200);
+    assert.equal((await fetch(origin + "/api/v1/services/" + application)).status, 200);
+    const catalogRoot = origin + "/api/v1/organizations/" + organization + "/services";
+    assert.equal((await fetch(catalogRoot)).status, 200);
+    assert.equal((await fetch(catalogRoot + "/" + application)).status, 200);
+    const secure = {Origin: origin, "Content-Type": "application/json", "X-CSRF-Token": "test-csrf", "If-Match": '"version-one"'};
+    assert.equal((await fetch(catalogRoot, {method: "POST", headers: secure, body: "{}"})).status, 200);
+    assert.equal((await fetch(catalogRoot + "/" + application, {method: "PUT", headers: secure, body: "{}"})).status, 200);
+    for (const action of ["publication", "archive"]) assert.equal((await fetch(catalogRoot + "/" + application + "/" + action, {method: "POST", headers: secure, body: "{}"})).status, 200);
+    assert.equal((await fetch(origin + "/api/v1/services/" + application, {method: "PUT", headers: secure, body: "{}"})).status, 404);
+    assert.equal((await fetch(catalogRoot, {method: "POST", headers: {...secure, Origin: "https://untrusted.example"}, body: "{}"})).status, 403);
+    console.log("PASS: catalog editor, public service pages and authorized proxy methods; public directory/detail content, publication/read-only proxy allowlist; reviewer/notification pages and allowed review/revision/PATCH proxy routes; verification page HTTP 200, multipart byte/header forwarding, binary private download, ETag/no-store forwarding, origin protection, and route allowlist.");
 } finally {
     const stopped = once(web, "exit"); web.kill(); await stopped;
     await new Promise(done => upstream.close(done));

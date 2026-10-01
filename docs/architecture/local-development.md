@@ -85,3 +85,9 @@ Use a separate registered and verified account. A trusted operator must grant Re
 ## Try public profiles
 
 After approval, open the Owner profile editor, save any changes, and explicitly publish the approved profile. Browse `/providers` anonymously. See [public provider profiles](public-provider-profiles.md) for prerequisites and badge semantics. New database migration `PublicProviderPublication` defaults existing profiles to private; run the usual host migration command or rebuild the Development Compose API to apply it.
+
+
+
+## Try service listings
+
+Apply the ServiceCatalog migration through normal Development Compose startup or the host migration command above. Open /organizations -> Service catalog, save an offer, and publish it only after its verified provider profile is explicitly published. Browse /services anonymously. See [service catalog](service-catalog.md) for rules, validation, filters, and remaining image work.

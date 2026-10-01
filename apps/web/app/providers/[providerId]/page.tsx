@@ -14,6 +14,7 @@ export default async function Provider({ params }: { params: Promise<{ providerI
     return <main className="auth-page"><Link href="/providers">Browse providers</Link>
         <h1>{provider.displayName}</h1><p>{provider.providerType === "Business" ? "Provider company" : "Independent provider"} · {provider.serviceArea}</p>
         <p style={{ whiteSpace: "pre-wrap" }}>{provider.biography}</p>
+        <p><Link href={"/services?providerId=" + provider.id} prefetch={false}>Browse this provider’s services</Link></p>
         <h2>Service categories</h2><ul>{provider.categories.map(category => <li key={category.id}>{category.name}</li>)}</ul>
         <h2>Current evidence checks</h2><ul>{provider.badges.map(badge => <li key={badge.type}>
             {badge.label}<br /><small>Valid until {new Date(badge.expiresAt).toISOString()} (UTC).</small>

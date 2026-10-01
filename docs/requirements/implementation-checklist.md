@@ -43,9 +43,17 @@ Source: [Master plan](../service-booking-marketplace-plan.md), sections 29–32.
 - [ ] Verify publication migration and provider-publication/browser journey with Docker/PostgreSQL.
 - [ ] Demonstrate the entire provider-registration-to-public-badge journey with fictional data.
 
+## Step 3: Catalog and discovery
+
+- [x] CATALOG-01 core: Owner-managed service drafts, fixed PHP centavo prices, duration/area/categories, publish/unpublish/archive, ETag/CSRF, atomic audit, and current provider eligibility.
+- [x] SEARCH-01 initial slice: Public services/details, literal text/area search, category/provider/price filters, title/price sorting, and bounded pagination.
+- [ ] CATALOG-01 follow-up: Separately authorized public service images with safe decoding/re-encoding, metadata stripping, malware checks, limits, and deletion/orphan cleanup.
+- [ ] SEARCH-01 follow-up: Badge-specific filters and production search/index tuning.
+- [ ] Verify ServiceCatalog migration, PostgreSQL query behavior, and interactive catalog/public-search flows with Docker/browser.
+
 ## Later milestones
 
-- [ ] Catalog, search, properties, availability, and conflict-safe booking lifecycle.
+- [ ] Customer properties, provider availability, and conflict-safe booking lifecycle.
 - [ ] Notifications and completed-booking reviews.
 - [ ] Administrator MFA and production cookie/CSRF/origin hardening verification.
 - [ ] Scoped partner OAuth through an established identity provider, idempotent bookings, rate limits, and signed webhooks.

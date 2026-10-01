@@ -24,6 +24,79 @@ namespace Marketplace.Api.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Marketplace.Api.Catalog.ServiceListing", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("PriceMinor")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ServiceArea")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("OrganizationId", "Status");
+
+                    b.HasIndex("Status", "CategoryId", "PriceMinor");
+
+                    b.ToTable("ServiceListings", t =>
+                        {
+                            t.HasCheckConstraint("CK_ServiceListing_Currency", "\"Currency\" = 'PHP'");
+
+                            t.HasCheckConstraint("CK_ServiceListing_Duration", "\"DurationMinutes\" >= 15 AND \"DurationMinutes\" <= 1440 AND \"DurationMinutes\" % 15 = 0");
+
+                            t.HasCheckConstraint("CK_ServiceListing_Price", "\"PriceMinor\" >= 1 AND \"PriceMinor\" <= 100000000");
+
+                            t.HasCheckConstraint("CK_ServiceListing_Status", "\"Status\" IN ('Draft', 'Published', 'Archived')");
+                        });
+                });
+
             modelBuilder.Entity("Marketplace.Api.Identity.Account", b =>
                 {
                     b.Property<string>("Id")
@@ -818,6 +891,21 @@ namespace Marketplace.Api.Data.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("Marketplace.Api.Catalog.ServiceListing", b =>
+                {
+                    b.HasOne("Marketplace.Api.Providers.ServiceCategory", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marketplace.Api.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Marketplace.Api.Identity.AccountSession", b =>

@@ -39,6 +39,6 @@ public sealed class OrganizationAuditEvent
 public static class OrganizationPermissions
 {
     public static string[] For(string role) => role == "Owner"
-        ? ["organization:read", "members:manage", "profile:read", "profile:write", "verification:read", "verification:write", "bookings:read", "bookings:manage"]
-        : ["organization:read", "profile:read", "verification:read", "bookings:read"];
+        ? ["organization:read", "members:manage", "profile:read", "profile:write", "catalog:read", "catalog:write", "verification:read", "verification:write", "bookings:read", "bookings:manage"]
+        : ["catalog:read", "organization:read", "profile:read", "verification:read", "bookings:read"];
 }

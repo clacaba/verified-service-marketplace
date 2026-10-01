@@ -78,3 +78,7 @@ and sandbox integrations.
 
 
 Public provider profiles are available at `/providers` after an Owner explicitly publishes an approved profile. Badges describe simulated evidence checks only. See [publication and badge workflow](docs/architecture/public-provider-profiles.md). Authentication decisions and deferred administrator MFA/partner OAuth are in section 34 of the [project plan](docs/service-booking-marketplace-plan.md).
+
+
+
+Core service catalog management is available at `/catalog?organizationId={id}`, with public discovery at `/services`. Owners manage drafts/publication/archiving; Staff read only. Current provider eligibility gates every public offer. PHP fixed prices, filters, and paging are implemented; images and booking remain planned. See [service catalog](docs/architecture/service-catalog.md).

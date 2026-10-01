@@ -1176,3 +1176,14 @@ Acceptance criteria for the partner/security milestones: deny expired/invalid/wr
 - Evidence, filenames, hashes, storage keys, reviewer identities/reasons, memberships, emails, and internal organization IDs remain private.
 - Existing loaded pages may remain visible until refreshed; responses and server-side fetches are no-store. Booking must independently recheck eligibility when implemented.
 - Automated API tests, frontend build/typecheck, and proxy smoke tests are required. Real Docker/PostgreSQL and interactive browser validation remain a separate pending acceptance check.
+
+
+## 35. Service catalog implementation decisions
+
+Core service listings and initial public discovery are implemented. Owners manage listings; Staff read only. Saved offers require title, description, active provider category, integer centavo price (PHP only), duration in 15-minute increments, and service area.
+
+Lifecycle: Draft -> Published -> Draft, with terminal Archived. Edits reset Published offers to Draft. Publish requires an explicitly published and currently eligible provider profile; every public read rechecks verification, category membership, and status. Changes and audit records save atomically with exact ETag/CSRF protections. Archive preserves history for future booking references; hard deletion/restoration is not implemented.
+
+Public /services pages and /api/v1/services endpoints support bounded paging, literal text and area search, category/provider filters, centavo price ranges, and deterministic title/price sorts. All returned offers already require current verification. Badge-specific filtering, full-text/fuzzy/geographic search, multi-currency, images, availability, booking, payments, and reviews remain deferred.
+
+CATALOG-01 is delivered as a core text/pricing lifecycle slice, not the full image requirement. Before marking it complete, implement a separate authorized public listing-image workflow with safe image processing and cleanup; never reuse private evidence as public images. Real Docker/PostgreSQL migration and interactive browser testing also remain pending. See docs/architecture/service-catalog.md for exact validation, permissions, APIs, and walkthrough.
