@@ -18,7 +18,7 @@ export default async function Services({searchParams}: {searchParams: Promise<Re
     } catch {error = "Catalog temporarily unavailable. Try again.";}
     const value = (key: string) => typeof params[key] === "string" ? params[key] as string : "";
     const pageLink = (next: number) => {const result = new URLSearchParams(query); result.set("page", String(next)); return "/services?" + result;};
-    return <main><Link href="/">Home</Link><h1>Find a service</h1><p>Fictional demo offers from providers with current simulated checks. Booking is not available yet.</p>
+    return <main className="browse-page"><nav className="browse-nav" aria-label="Marketplace"><Link href="/">Marketplace</Link><Link href="/providers">Meet providers</Link><Link href="/account">Dashboard</Link><Link href="/register">Get started ↗</Link></nav><p className="eyebrow">MAKE SPACE FOR THE GOOD STUFF</p><h1>Find a service</h1><p className="browse-intro">A little help for your home. Explore services, compare prices, and choose your next fresh start.</p><p className="demo-disclosure">Fictional demo offers from providers with current simulated checks. Verify your email and add a fictional property to request an available time.</p>
         <form action="/services" className="profile-fields">
             <label htmlFor="q">Search title or description</label><input id="q" name="q" maxLength={150} defaultValue={value("q")}/>
             <label htmlFor="categoryId">Category</label><select id="categoryId" name="categoryId" defaultValue={value("categoryId")}><option value="">All categories</option>{categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>

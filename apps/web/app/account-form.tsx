@@ -57,11 +57,20 @@ export default function AccountForm({ mode }: { mode: "register" | "login" }) {
         finally { setBusy(false); }
     }
     return <main className="auth-page account-page">
-        <Link className="auth-brand" href="/">Verified Service Marketplace</Link>
+        <Link className="auth-brand" href="/"><span className="brand-mark" aria-hidden="true">v.</span> Verified Service Marketplace</Link>
+        <div className="auth-layout">
+        <aside className="auth-story" aria-labelledby="auth-story-heading">
+            <p className="eyebrow">A LITTLE HELP. A HAPPIER HOME.</p>
+            <h2 id="auth-story-heading">{register ? <>Make room for<br/><em>what matters.</em></> : <>Your home.<br/><em>Your next chapter.</em></>}</h2>
+            <p>{register ? "A place to find help for your home—or share the skills that make someone else’s day easier." : "Your services, saved properties, and booking updates. Right where you left them."}</p>
+            <ul className="auth-benefits"><li><span aria-hidden="true">✓</span> Explore services with clear prices</li><li><span aria-hidden="true">✓</span> Choose a time around your day</li><li><span aria-hidden="true">✓</span> Follow every booking in one place</li></ul>
+            <div className="auth-story-art" aria-hidden="true"><span className="story-sun"/><span className="story-house"><span/></span><span className="story-ground"/></div>
+            <p className="auth-demo-note">Portfolio demo. Fictional providers, properties, and simulated checks. No payments.</p>
+        </aside>
         <section className="account-card">
             <p className="eyebrow">{register ? "GET STARTED" : "YOUR MARKETPLACE"}</p>
             <h1>{register ? "Create your account" : "Welcome back"}</h1>
-            <p>{register ? "Find services or build your provider profile." : "Sign in to continue your marketplace journey."}</p>
+            <p>{register ? "A fresh start for your home—or your provider business." : "Good to see you. Let’s pick up where you left off."}</p>
             <p className="required-note">Fields marked <span className="required-marker">*</span> are required.</p>
             <form ref={formRef} onSubmit={submit} noValidate aria-busy={busy}>
                 <fieldset className="account-fields" disabled={busy}>
@@ -87,5 +96,6 @@ export default function AccountForm({ mode }: { mode: "register" | "login" }) {
             </form>
             <Link className="auth-switch" href={register ? "/login" : "/register"}>{register ? "Already have an account? Sign in" : "New here? Create an account"}</Link>
         </section>
+        </div>
     </main>;
 }

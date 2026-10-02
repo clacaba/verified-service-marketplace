@@ -14,8 +14,8 @@ export default async function Providers({ searchParams }: { searchParams: Promis
         data = await response.json();
     } catch { return <main><h1>Provider directory</h1><p role="alert">Unable to load providers. Please try again.</p><Link href="/">Home</Link></main>; }
     const link = (next: number) => "/providers?" + new URLSearchParams({ page: String(next), ...(params.categoryId ? { categoryId: params.categoryId } : {}) });
-    return <main><Link href="/">Home</Link><h1>Provider directory</h1>
-        <p>Portfolio demo: fictional providers and simulated verification checks. Booking is not available yet.</p>
+    return <main className="browse-page"><nav className="browse-nav" aria-label="Marketplace"><Link href="/">Marketplace</Link><Link href="/services">Find services</Link><Link href="/account">Dashboard</Link><Link href="/register">Get started ↗</Link></nav><p className="eyebrow">MEET YOUR NEXT HELPING HAND</p><h1>Provider directory</h1>
+        <p className="browse-intro">Find the people behind the services. Explore profiles, service areas, and precisely described verification badges.</p><p className="demo-disclosure">Portfolio demo: fictional providers and simulated verification checks. Available services can be requested after email verification.</p>
         {data.items.length === 0 && <p>No published providers match this page. Profiles appear only after approval and explicit owner publication.</p>}
         <section className="categories" aria-label="Published providers">{data.items.map(provider => <article key={provider.id}>
             <h2><Link href={"/providers/" + provider.id} prefetch={false}>{provider.displayName}</Link></h2>
