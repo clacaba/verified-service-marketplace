@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);const ts=require('typescript');
+const compiled=ts.transpileModule(readFileSync(new URL('../apps/web/lib/booking-ui.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2020}}).outputText;
+const {bookingActions,bookingLabel,bookingTime,reasonError}=await import('data:text/javascript;base64,'+Buffer.from(compiled).toString('base64'));
+const now=Date.parse('2026-10-02T08:00:00Z');const b={status:'PendingProviderConfirmation',startsAt:'2026-10-02T10:00:00Z',expiresAt:'2026-10-02T09:00:00Z'};
+assert.deepEqual(bookingActions(b,false,now),['cancel']);assert.deepEqual(bookingActions(b,true,now),['confirm','decline','cancel']);
+assert.deepEqual(bookingActions({...b,expiresAt:new Date(now).toISOString()},true,now),[]);
+assert.deepEqual(bookingActions({...b,status:'Confirmed'},true,now),['cancel']);
+assert.deepEqual(bookingActions({...b,status:'Confirmed',startsAt:new Date(now).toISOString()},true,now),['start']);
+assert.deepEqual(bookingActions({...b,status:'Confirmed',startsAt:new Date(now).toISOString()},false,now),[]);
+assert.deepEqual(bookingActions({...b,status:'InProgress'},true,now),['complete']);assert.deepEqual(bookingActions({...b,status:'InProgress'},false,now),[]);
+for(const status of ['Completed','Declined','Expired','CancelledByCustomer','CancelledByProvider'])assert.deepEqual(bookingActions({...b,status},true,now),[]);
+assert.ok(reasonError('cancel','  '));assert.ok(reasonError('decline',''));assert.ok(reasonError('cancel','x'.repeat(501)));assert.ok(reasonError('cancel','line\nbreak'));assert.equal(reasonError('confirm',''),'');assert.equal(reasonError('cancel','Valid reason'),'');
+assert.equal(bookingLabel(b.status),'Awaiting provider');assert.match(bookingTime('2026-10-02T08:00:00Z','Asia/Manila'),/4:00/);assert.equal(bookingTime('invalid','Asia/Manila'),'Date unavailable');
+const vm=require('node:vm');const React=require('react');const {renderToStaticMarkup}=require('react-dom/server');
+function render(relative,states,props={}){let cursor=0;const source=ts.transpileModule(readFileSync(new URL('../'+relative,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2020}}).outputText;const module={exports:{}};vm.runInNewContext(source,{exports:module.exports,require:name=>name==='react'?{...React,useState:initial=>[cursor<states.length?states[cursor++]:typeof initial==='function'?initial():initial,()=>{}]}:name==='next/link'?{default:({children,...p})=>React.createElement('a',p,children)}:name==='next/navigation'?{useRouter:()=>({replace(){},refresh(){}})}:name.endsWith('/booking-ui')?{bookingActions,bookingLabel,bookingTime,reasonError}:name.endsWith('/catalog-client')?{price:minor=>'PHP '+minor/100,catalogRequest(){throw Error('Render must not request')}}:name.endsWith('/auth-client')?{authRequest(){throw Error('Render must not request')}}:require(name)});return renderToStaticMarkup(React.createElement(module.exports.default,props));}
+const user={id:'u',name:'Demo User',email:'demo@example.test',emailConfirmed:true,capabilities:['Customer'],memberships:[]};
+const dashboard=render('apps/web/app/account/page.tsx',[user,'',{items:[],totalCount:0},'','',false,false,0]);assert.match(dashboard,/Customer workspace/);assert.match(dashboard,/No bookings yet/);assert.match(dashboard,/Manage properties/);assert.doesNotMatch(dashboard,/Administrator review queue/);
+const future=new Date(Date.now()+3600000).toISOString();const booked={id:'b',organizationId:'org',status:'Confirmed',startsAt:future,endsAt:future,expiresAt:future,snapshot:{TimeZone:'Asia/Manila',service:{Title:'Demo cleaning',PriceMinor:10000},property:{Label:'Demo home',AddressLine1:'Fictional street',City:'Demo City'}}};
+const membership={organizationId:'org',name:'Demo Provider',role:'Staff',active:true};
+const booking=render('apps/web/app/bookings/page.tsx',[[membership],'org',1,{items:[booked],totalCount:1},{booking:booked,events:[]},'etag','','cancel',false,'','',[],'',0,Date.now()]);assert.match(booking,/Service property/);assert.match(booking,/aria-hidden="true">\*/);assert.match(booking,/id="decision-reason" required/);assert.match(booking,/scheduled start time/);assert.doesNotMatch(booking,/>Start work<\/button>/);
+const request=render('apps/web/app/services/[serviceId]/booking-request.tsx',[],{serviceId:'service'});assert.match(request,/Find available times/);assert.match(request,/No payment is collected/);assert.doesNotMatch(request,/>Send booking request<\/button>/);
+console.log('PASS: booking roles, deadlines, status labels, reasons, provider-time-zone formatting and server-rendered dashboard/booking controls.');
