@@ -22,4 +22,8 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run build
+      - run: node scripts/test-account-validation.mjs
+      - run: node scripts/test-booking-ui.mjs
+      - run: node scripts/test-visual-design.mjs
+      - run: node scripts/test-customer-reviews.mjs
       - run: node scripts/smoke-verification-proxy.mjs

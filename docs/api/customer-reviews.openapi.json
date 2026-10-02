@@ -1,0 +1,22 @@
+{
+  "openapi": "3.0.3",
+  "info": {"title": "Verified Service Marketplace — Customer reviews", "version": "0.1.0", "description": "Append-only reviews for completed fictional bookings. Public feedback, generic author labels, and calculated aggregates. No payments or guarantee of service quality. Read alongside milestone-a and milestone-b contracts."},
+  "servers": [{"url":"http://localhost:5080"},{"url":"http://localhost:3000","description":"Same-origin frontend proxy"}],
+  "paths": {
+    "/api/v1/bookings/{bookingId}/review": {
+      "parameters": [{"name":"bookingId","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}],
+      "get": {"summary":"Read participant-only feedback and review eligibility", "security":[{"browserSession":[]}], "responses":{"200":{"description":"Server-authoritative eligibility and existing review","content":{"application/json":{"schema":{"type":"object","required":["canReview","reason","review"],"properties":{"canReview":{"type":"boolean"},"reason":{"type":"string"},"review":{"allOf":[{"$ref":"#/components/schemas/Review"}],"nullable":true}}}}}},"401":{"description":"Sign in required"},"404":{"description":"Unknown booking or not a participant"}}},
+      "post": {"summary":"Publish exactly one review for the customer's completed booking", "security":[{"browserSession":[]}], "parameters":[{"name":"X-CSRF-Token","in":"header","required":true,"schema":{"type":"string"}}], "requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","additionalProperties":false,"required":["rating","comment","publishAcknowledged"],"properties":{"rating":{"type":"integer","minimum":1,"maximum":5},"comment":{"type":"string","minLength":10,"maxLength":2000,"description":"Trimmed UTF-16 code-unit length. Line breaks/tabs allowed; other control characters rejected."},"publishAcknowledged":{"type":"boolean","enum":[true]}}}}}},"responses":{"201":{"description":"Published review","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Review"}}}},"400":{"description":"Invalid feedback, missing consent/CSRF, or unknown request fields"},"401":{"description":"Sign in required"},"403":{"description":"Unverified email, provider self-review, or invalid proxy origin"},"404":{"description":"Unknown booking or not its customer"},"409":{"description":"Booking not completed or review already exists; reload before retrying"}}}
+    },
+    "/api/v1/providers/{providerId}/reviews": {
+      "get": {"summary":"Read public feedback and full-dataset aggregate for a currently eligible published provider", "security":[], "parameters":[{"name":"providerId","in":"path","required":true,"schema":{"type":"string","format":"uuid"}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"maximum":100000,"default":1}},{"name":"pageSize","in":"query","schema":{"type":"integer","minimum":1,"maximum":50,"default":10}}],"responses":{"200":{"description":"No-store paged feedback; no customer IDs, booking IDs, emails or addresses","content":{"application/json":{"schema":{"type":"object","required":["items","totalCount","averageRating","page","pageSize","disclosure"],"properties":{"items":{"type":"array","items":{"$ref":"#/components/schemas/PublicReview"}},"totalCount":{"type":"integer","minimum":0},"averageRating":{"type":"number","nullable":true,"minimum":1,"maximum":5,"description":"Rounded to two decimal places; null if no Published reviews."},"page":{"type":"integer"},"pageSize":{"type":"integer"},"disclosure":{"type":"string"}}}}}},"400":{"description":"Invalid pagination"},"404":{"description":"Provider unknown, unpublished or no longer eligible"}}}
+    }
+  },
+  "components": {
+    "securitySchemes":{"browserSession":{"type":"apiKey","in":"cookie","name":"marketplace_session"}},
+    "schemas": {
+      "Review":{"type":"object","required":["rating","comment","status","createdAt"],"properties":{"rating":{"type":"integer","minimum":1,"maximum":5},"comment":{"type":"string"},"status":{"type":"string","enum":["Published","Hidden"]},"createdAt":{"type":"string","format":"date-time"}}},
+      "PublicReview":{"type":"object","required":["rating","comment","createdAt","authorLabel"],"properties":{"rating":{"type":"integer","minimum":1,"maximum":5},"comment":{"type":"string"},"createdAt":{"type":"string","format":"date-time"},"authorLabel":{"type":"string","enum":["Customer with a completed booking"]}}}
+    }
+  }
+}

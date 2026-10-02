@@ -319,6 +319,41 @@ namespace Marketplace.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Marketplace.Api.CustomerReviews.BookingReview", b =>
+                {
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("BookingId");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.ToTable("BookingReviews", t =>
+                        {
+                            t.HasCheckConstraint("CK_BookingReview_Comment", "length(trim(\"Comment\")) >= 1 AND length(\"Comment\") <= 2000");
+
+                            t.HasCheckConstraint("CK_BookingReview_Rating", "\"Rating\" >= 1 AND \"Rating\" <= 5");
+
+                            t.HasCheckConstraint("CK_BookingReview_Status", "\"Status\" IN ('Published','Hidden')");
+                        });
+                });
+
             modelBuilder.Entity("Marketplace.Api.Identity.Account", b =>
                 {
                     b.Property<string>("Id")
@@ -1262,6 +1297,17 @@ namespace Marketplace.Api.Data.Migrations
                         .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Marketplace.Api.CustomerReviews.BookingReview", b =>
+                {
+                    b.HasOne("Marketplace.Api.Bookings.Booking", "Booking")
+                        .WithMany()
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
                 });
 
             modelBuilder.Entity("Marketplace.Api.Identity.AccountSession", b =>

@@ -1215,4 +1215,12 @@ Delivered pages: /properties, /availability, service detail booking request, /bo
 
 See docs/architecture/properties-availability-bookings.md and docs/api/milestone-b.openapi.json for environment settings, exact APIs, concurrency protocol, and Postman walkthrough. Real Docker/PostgreSQL concurrent-request, SMTP, and interactive browser validation remain pending; automated SQLite/proxy/build results do not claim those checks. Preserve the same serialization protocol in all future reservation-writing paths.
 
-Deferred: visual calendar UX, geographic service-area validation, human booking idempotency/rescheduling, multi-capacity/staff assignment, booking notice read tracking, payments/disputes, completed-booking reviews, and partner OAuth/idempotency/webhooks. Next feature: completed-booking reviews, after real-stack acceptance of this booking slice.
+Deferred: visual calendar UX, geographic service-area validation, human booking idempotency/rescheduling, multi-capacity/staff assignment, booking notice read tracking, payments/disputes, and partner OAuth/idempotency/webhooks. Completed-booking reviews are implemented in section 38.
+
+## 38. Customer ratings and completed-booking reviews
+
+Verified-email customers can publish exactly one 1–5 rating and written review for their own Completed booking. Active provider-organization members cannot self-review; all other booking statuses are rejected. Public-feedback acknowledgement is required, and users are warned not to include personal information. Reviews are immutable in this release; providers have no deletion/hiding/editing capability.
+
+The booking review panel reads server-authoritative eligibility. Eligible published provider profiles show paginated customer feedback, total review count, and calculated average ratings; empty profiles have no invented rating. Public responses use a generic customer label and omit booking/customer/property/organization identifiers. Provider visibility is checked before and after reading reviews. Hidden reviews are excluded from totals, but moderation tools are not yet implemented.
+
+Cookie sessions, CSRF, exact frontend origin checks, bounded paging, safe plain-text rendering, database-enforced one-review-per-booking uniqueness, and additive migrations are included. See docs/architecture/customer-reviews.md and docs/api/customer-reviews.openapi.json for contracts and acceptance checks. Reviews publish immediately for the fictional portfolio demo; provider replies, review images, editing, reporting, production abuse controls, and administrator moderation remain later milestones. Interactive browser validation remains a separate user acceptance step.

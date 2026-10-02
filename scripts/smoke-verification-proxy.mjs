@@ -14,9 +14,17 @@ const document = "30000000-0000-0000-0000-000000000001";
 const evidenceBytes = Buffer.from([0, 255, 128, 13, 10, 65, 66]);
 let imageUploadSeen = false; let imageReadSeen = false;
 let uploadSeen = false; let contentSeen = false;
+let reviewSeen = false;
 const upstream = http.createServer(async (request, response) => {
     const chunks = []; for await (const chunk of request) chunks.push(chunk);
     const body = Buffer.concat(chunks);
+    if (request.url.endsWith("/review") && request.method === "POST") {
+        reviewSeen = request.headers["x-csrf-token"] === "test-csrf" && JSON.parse(body.toString()).rating === 5;
+        response.setHeader("Content-Type", "application/json"); response.statusCode = 201; response.end('{"rating":5,"comment":"Fictional feedback.","status":"Published","createdAt":"2026-10-02T08:00:00Z"}'); return;
+    }
+    if (request.url.includes("/reviews") && request.method === "GET") {
+        response.setHeader("Content-Type", "application/json"); response.end('{"items":[],"totalCount":0,"averageRating":null,"page":1,"pageSize":10,"disclosure":"Fictional demo."}'); return;
+    }
     if (request.url.endsWith("/images") && request.method === "POST") {
         imageUploadSeen = body.includes(evidenceBytes) && request.headers["if-match"] === '"version-one"' && request.headers["x-csrf-token"] === "test-csrf" && request.headers["content-type"].startsWith("multipart/form-data;");
         response.setHeader("ETag", '"image-version"'); response.setHeader("Content-Type", "application/json"); response.end("{}"); return;
@@ -95,6 +103,13 @@ try {
     assert.match(await publicProfile.text(), /not a background check/);
     assert.equal((await fetch(origin + "/api/v1/providers?pageSize=1")).status, 200);
     assert.equal((await fetch(origin + "/api/v1/providers/" + organization)).status, 200);
+    assert.equal((await fetch(origin + "/api/v1/providers/" + organization + "/reviews")).status, 200);
+    const reviewRoute = origin + "/api/v1/bookings/" + application + "/review";
+    assert.equal((await fetch(reviewRoute)).status, 200);
+    assert.equal((await fetch(reviewRoute, {method:"POST",headers:{Origin:origin,"Content-Type":"application/json","X-CSRF-Token":"test-csrf"},body:'{"rating":5,"comment":"Fictional feedback.","publishAcknowledged":true}'})).status, 201); assert.ok(reviewSeen);
+    assert.equal((await fetch(reviewRoute, {method:"POST",headers:{Origin:"https://untrusted.example","Content-Type":"application/json"},body:'{}'})).status, 403);
+    for(const method of ["PUT","DELETE","PATCH"]) assert.equal((await fetch(reviewRoute, {method,headers:{Origin:origin}})).status, 404);
+    assert.equal((await fetch(origin+"/api/v1/providers/"+organization+"/reviews",{method:"POST",headers:{Origin:origin},body:'{}'})).status, 404);
     assert.equal((await fetch(origin + "/api/v1/providers/" + organization, {method: "POST", headers: {Origin: origin}})).status, 404);
     assert.equal((await fetch(origin + "/api/v1/organizations/" + organization + "/provider-profile/publication", { method: "POST", headers: {Origin: origin, "Content-Type": "application/json", "X-CSRF-Token": "test-csrf", "If-Match": '"version-one"'}, body: '{"published":true}' })).status, 200);
     assert.equal((await fetch(origin + "/catalog?organizationId=" + organization)).status, 200);

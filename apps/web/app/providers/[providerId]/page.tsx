@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { publicProviders, type PublicProvider } from "../../../lib/public-providers";
+import ProviderReviews from "./provider-reviews";
 export const dynamic = "force-dynamic";
 export default async function Provider({ params }: { params: Promise<{ providerId: string }> }) {
     const { providerId } = await params;
@@ -11,7 +12,7 @@ export default async function Provider({ params }: { params: Promise<{ providerI
     if (response.status === 404) notFound();
     if (!response.ok) return <main><h1>Profile temporarily unavailable</h1><Link href="/providers">Browse providers</Link></main>;
     const provider: PublicProvider = await response.json();
-    return <main className="auth-page"><Link href="/providers">Browse providers</Link>
+    return <main className="workspace-page provider-detail"><nav className="workspace-nav" aria-label="Marketplace"><Link href="/providers">Browse providers</Link><Link href="/services">Find services</Link><Link href="/account">Dashboard</Link></nav>
         <h1>{provider.displayName}</h1><p>{provider.providerType === "Business" ? "Provider company" : "Independent provider"} · {provider.serviceArea}</p>
         <p style={{ whiteSpace: "pre-wrap" }}>{provider.biography}</p>
         <p><Link href={"/services?providerId=" + provider.id} prefetch={false}>Browse this provider’s services</Link></p>
@@ -20,6 +21,7 @@ export default async function Provider({ params }: { params: Promise<{ providerI
             {badge.label}<br /><small>Valid until {new Date(badge.expiresAt).toISOString()} (UTC).</small>
         </li>)}</ul>
         <p>{provider.disclosure}</p><p>These checks are not a background check or a guarantee of licensing, safety, or service quality.</p>
-        <p>Booking and reviews will be available in later milestones. Refresh this page to check current visibility.</p>
+        <ProviderReviews providerId={provider.id}/>
+        <p className="review-fineprint">Refresh this page to check current profile visibility and review totals.</p>
     </main>;
 }

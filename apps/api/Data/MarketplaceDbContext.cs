@@ -1,4 +1,5 @@
 using Marketplace.Api.Bookings;
+using Marketplace.Api.CustomerReviews;
 using Marketplace.Api.Properties;
 using Marketplace.Api.Catalog;
 using Marketplace.Api.Review;
@@ -12,6 +13,7 @@ namespace Marketplace.Api.Data;
 
 public sealed class MarketplaceDbContext(DbContextOptions<MarketplaceDbContext> options) : IdentityDbContext<Account>(options)
 {
+    public DbSet<BookingReview> BookingReviews => Set<BookingReview>();
     public DbSet<ProviderSchedule> ProviderSchedules => Set<ProviderSchedule>();
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<BookingEvent> BookingEvents => Set<BookingEvent>();
@@ -39,6 +41,18 @@ public sealed class MarketplaceDbContext(DbContextOptions<MarketplaceDbContext> 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.Entity<BookingReview>().HasKey(r => r.BookingId);
+        builder.Entity<BookingReview>().HasOne(r => r.Booking).WithMany().HasForeignKey(r => r.BookingId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<BookingReview>().Property(r => r.Comment).HasMaxLength(2000);
+        builder.Entity<BookingReview>().Property(r => r.Status).HasMaxLength(20);
+        builder.Entity<BookingReview>().HasIndex(r => new { r.Status, r.CreatedAt });
+        builder.Entity<BookingReview>().ToTable(t =>
+        {
+            t.HasCheckConstraint("CK_BookingReview_Rating", "\"Rating\" >= 1 AND \"Rating\" <= 5");
+            // Minimum feedback length is validated in UTF-16 by the API/browser. SQL counts Unicode code points.
+            t.HasCheckConstraint("CK_BookingReview_Comment", "length(trim(\"Comment\")) >= 1 AND length(\"Comment\") <= 2000");
+            t.HasCheckConstraint("CK_BookingReview_Status", "\"Status\" IN ('Published','Hidden')");
+        });
         builder.Entity<ProviderSchedule>().HasOne<Organization>().WithMany().HasForeignKey(s => s.Id).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<ProviderSchedule>().Property(s => s.Version).IsConcurrencyToken();
         builder.Entity<Booking>().Property(b => b.Version).IsConcurrencyToken();
