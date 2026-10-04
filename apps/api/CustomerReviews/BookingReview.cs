@@ -10,4 +10,5 @@ public sealed class BookingReview
     public string Comment { get; set; } = "";
     public string Status { get; set; } = "Published";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public ProviderReviewReply? Reply { get; set; }
 }

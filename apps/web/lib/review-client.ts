@@ -1,5 +1,6 @@
-export type CustomerReview = {rating:number;comment:string;createdAt:string;status?:"Published"|"Hidden";authorLabel?:string};
-export type BookingReviewState = {canReview:boolean;reason:string;review:CustomerReview|null};
+export type ProviderReply = {comment:string;createdAt:string;authorLabel:string};
+export type CustomerReview = {rating:number;comment:string;createdAt:string;status?:"Published"|"Hidden";authorLabel?:string;reply?:ProviderReply|null};
+export type BookingReviewState = {canReview:boolean;reason:string;canReply?:boolean;replyReason?:string;review:CustomerReview|null};
 export type PublicReviews = {items:CustomerReview[];totalCount:number;averageRating:number|null;page:number;pageSize:number;disclosure:string};
 export function validateReview(rating:number,comment:string,publishAcknowledged:boolean){
  const errors:{rating?:string;comment?:string;publishAcknowledged?:string}={};
@@ -9,3 +10,4 @@ export function validateReview(rating:number,comment:string,publishAcknowledged:
  return errors;
 }
 export function ratingText(rating:number){return `${rating} out of 5 stars`;}
+export function validateReply(comment:string,publishAcknowledged:boolean){const {rating,...errors}=validateReview(1,comment,publishAcknowledged);return errors;}

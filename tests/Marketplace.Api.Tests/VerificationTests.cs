@@ -42,6 +42,7 @@ public sealed partial class VerificationTests
         public Func<Task>? DecisionRace { get; set; }
         public Func<Task>? BookingRace { get; set; }
         public Func<Task>? CustomerReviewRace { get; set; }
+        public Func<Task>? ProviderReplyRace { get; set; }
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment("Testing"); builder.UseSetting("ConnectionStrings:Marketplace", "Host=unused");
@@ -49,7 +50,7 @@ public sealed partial class VerificationTests
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<DbContextOptions<MarketplaceDbContext>>(); services.RemoveAll<IDbContextOptionsConfiguration<MarketplaceDbContext>>();
-                services.AddDbContext<MarketplaceDbContext>(options => options.UseSqlite(connection).AddInterceptors(new DecisionRaceInterceptor(this), new BookingRaceInterceptor(this), new CustomerReviewRaceInterceptor(this)));
+                services.AddDbContext<MarketplaceDbContext>(options => options.UseSqlite(connection).AddInterceptors(new DecisionRaceInterceptor(this), new BookingRaceInterceptor(this), new CustomerReviewRaceInterceptor(this), new ProviderReplyRaceInterceptor(this)));
                 services.RemoveAll<Marketplace.Api.Catalog.IServiceImageStore>(); services.AddSingleton<Marketplace.Api.Catalog.IServiceImageStore>(ImageStorage);
                 services.RemoveAll<IEvidenceStore>(); services.AddSingleton<IEvidenceStore>(Storage);
                 services.RemoveAll<IEvidenceScanner>(); services.AddSingleton<IEvidenceScanner>(Scan);

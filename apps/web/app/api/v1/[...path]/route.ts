@@ -7,6 +7,7 @@ const serviceAvailability = new RegExp("^services/" + uuid + "/availability$", "
 const bookingDetail = new RegExp("^bookings/" + uuid + "$", "i");
 const bookingDecision = new RegExp("^bookings/" + uuid + "/decisions$", "i");
 const bookingReview = new RegExp("^bookings/" + uuid + "/review$", "i");
+const reviewReply = new RegExp("^bookings/" + uuid + "/review/reply$", "i");
 const providerReviews = new RegExp("^providers/" + uuid + "/reviews$", "i");
 const propertyDetail = new RegExp("^properties/" + uuid + "$", "i");
 const propertyArchive = new RegExp("^properties/" + uuid + "/archive$", "i");
@@ -56,6 +57,7 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
     const { path } = await context.params; const route = path.join("/"); const method = request.method;
     const allowed = permitted.has(method + " " + route)
         || (["GET", "POST"].includes(method) && bookingReview.test(route))
+        || (method === "POST" && reviewReply.test(route))
         || (method === "GET" && providerReviews.test(route))
         || (method === "GET" && (route === "bookings" || route === "booking-notifications" || bookingDetail.test(route) || providerAvailability.test(route) || serviceAvailability.test(route)))
         || (method === "PUT" && providerAvailability.test(route))

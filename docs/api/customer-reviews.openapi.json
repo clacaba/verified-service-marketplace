@@ -15,8 +15,9 @@
   "components": {
     "securitySchemes":{"browserSession":{"type":"apiKey","in":"cookie","name":"marketplace_session"}},
     "schemas": {
-      "Review":{"type":"object","required":["rating","comment","status","createdAt"],"properties":{"rating":{"type":"integer","minimum":1,"maximum":5},"comment":{"type":"string"},"status":{"type":"string","enum":["Published","Hidden"]},"createdAt":{"type":"string","format":"date-time"}}},
-      "PublicReview":{"type":"object","required":["rating","comment","createdAt","authorLabel"],"properties":{"rating":{"type":"integer","minimum":1,"maximum":5},"comment":{"type":"string"},"createdAt":{"type":"string","format":"date-time"},"authorLabel":{"type":"string","enum":["Customer with a completed booking"]}}}
+      "Review":{"type":"object","required":["rating","comment","status","createdAt","reply"],"properties":{"rating":{"type":"integer","minimum":1,"maximum":5},"comment":{"type":"string"},"status":{"type":"string","enum":["Published","Hidden"]},"createdAt":{"type":"string","format":"date-time"},"reply":{"allOf":[{"$ref":"#/components/schemas/ProviderReply"}],"nullable":true}}},
+      "PublicReview":{"type":"object","required":["rating","comment","createdAt","authorLabel","reply"],"properties":{"rating":{"type":"integer","minimum":1,"maximum":5},"comment":{"type":"string"},"createdAt":{"type":"string","format":"date-time"},"authorLabel":{"type":"string","enum":["Customer with a completed booking"]},"reply":{"allOf":[{"$ref":"#/components/schemas/ProviderReply"}],"nullable":true}}},
+      "ProviderReply":{"type":"object","required":["comment","createdAt","authorLabel"],"properties":{"comment":{"type":"string"},"createdAt":{"type":"string","format":"date-time"},"authorLabel":{"type":"string","enum":["Provider response"]}}}
     }
   }
 }

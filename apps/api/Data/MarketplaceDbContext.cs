@@ -14,6 +14,7 @@ namespace Marketplace.Api.Data;
 public sealed class MarketplaceDbContext(DbContextOptions<MarketplaceDbContext> options) : IdentityDbContext<Account>(options)
 {
     public DbSet<BookingReview> BookingReviews => Set<BookingReview>();
+    public DbSet<ProviderReviewReply> ProviderReviewReplies => Set<ProviderReviewReply>();
     public DbSet<ProviderSchedule> ProviderSchedules => Set<ProviderSchedule>();
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<BookingEvent> BookingEvents => Set<BookingEvent>();
@@ -41,6 +42,11 @@ public sealed class MarketplaceDbContext(DbContextOptions<MarketplaceDbContext> 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.Entity<ProviderReviewReply>().HasKey(r => r.BookingId);
+        builder.Entity<BookingReview>().HasOne(r => r.Reply).WithOne().HasForeignKey<ProviderReviewReply>(r => r.BookingId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<ProviderReviewReply>().HasOne<Account>().WithMany().HasForeignKey(r => r.ActorId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<ProviderReviewReply>().Property(r => r.Comment).HasMaxLength(2000);
+        builder.Entity<ProviderReviewReply>().ToTable(t => t.HasCheckConstraint("CK_ProviderReviewReply_Comment", "length(trim(\"Comment\")) >= 1 AND length(\"Comment\") <= 2000"));
         builder.Entity<BookingReview>().HasKey(r => r.BookingId);
         builder.Entity<BookingReview>().HasOne(r => r.Booking).WithMany().HasForeignKey(r => r.BookingId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<BookingReview>().Property(r => r.Comment).HasMaxLength(2000);

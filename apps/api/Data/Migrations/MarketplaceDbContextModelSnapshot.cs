@@ -354,6 +354,33 @@ namespace Marketplace.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Marketplace.Api.CustomerReviews.ProviderReviewReply", b =>
+                {
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActorId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("BookingId");
+
+                    b.HasIndex("ActorId");
+
+                    b.ToTable("ProviderReviewReplies", t =>
+                        {
+                            t.HasCheckConstraint("CK_ProviderReviewReply_Comment", "length(trim(\"Comment\")) >= 1 AND length(\"Comment\") <= 2000");
+                        });
+                });
+
             modelBuilder.Entity("Marketplace.Api.Identity.Account", b =>
                 {
                     b.Property<string>("Id")
@@ -1310,6 +1337,21 @@ namespace Marketplace.Api.Data.Migrations
                     b.Navigation("Booking");
                 });
 
+            modelBuilder.Entity("Marketplace.Api.CustomerReviews.ProviderReviewReply", b =>
+                {
+                    b.HasOne("Marketplace.Api.Identity.Account", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marketplace.Api.CustomerReviews.BookingReview", null)
+                        .WithOne("Reply")
+                        .HasForeignKey("Marketplace.Api.CustomerReviews.ProviderReviewReply", "BookingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Marketplace.Api.Identity.AccountSession", b =>
                 {
                     b.HasOne("Marketplace.Api.Identity.Account", null)
@@ -1533,6 +1575,11 @@ namespace Marketplace.Api.Data.Migrations
             modelBuilder.Entity("Marketplace.Api.Catalog.ServiceListing", b =>
                 {
                     b.Navigation("Images");
+                });
+
+            modelBuilder.Entity("Marketplace.Api.CustomerReviews.BookingReview", b =>
+                {
+                    b.Navigation("Reply");
                 });
 
             modelBuilder.Entity("Marketplace.Api.Providers.ProviderProfile", b =>

@@ -15,9 +15,14 @@ const evidenceBytes = Buffer.from([0, 255, 128, 13, 10, 65, 66]);
 let imageUploadSeen = false; let imageReadSeen = false;
 let uploadSeen = false; let contentSeen = false;
 let reviewSeen = false;
+let replySeen = false;
 const upstream = http.createServer(async (request, response) => {
     const chunks = []; for await (const chunk of request) chunks.push(chunk);
     const body = Buffer.concat(chunks);
+    if (request.url.endsWith("/review/reply") && request.method === "POST") {
+        replySeen = request.headers["x-csrf-token"] === "test-csrf" && JSON.parse(body.toString()).comment === "Fictional provider response.";
+        response.setHeader("Content-Type", "application/json"); response.statusCode = 201; response.end('{"comment":"Fictional provider response.","authorLabel":"Provider response","createdAt":"2026-10-02T09:00:00Z"}'); return;
+    }
     if (request.url.endsWith("/review") && request.method === "POST") {
         reviewSeen = request.headers["x-csrf-token"] === "test-csrf" && JSON.parse(body.toString()).rating === 5;
         response.setHeader("Content-Type", "application/json"); response.statusCode = 201; response.end('{"rating":5,"comment":"Fictional feedback.","status":"Published","createdAt":"2026-10-02T08:00:00Z"}'); return;
@@ -105,6 +110,9 @@ try {
     assert.equal((await fetch(origin + "/api/v1/providers/" + organization)).status, 200);
     assert.equal((await fetch(origin + "/api/v1/providers/" + organization + "/reviews")).status, 200);
     const reviewRoute = origin + "/api/v1/bookings/" + application + "/review";
+    assert.equal((await fetch(reviewRoute+"/reply",{method:"POST",headers:{Origin:origin,"Content-Type":"application/json","X-CSRF-Token":"test-csrf"},body:'{"comment":"Fictional provider response.","publishAcknowledged":true}'})).status,201); assert.ok(replySeen);
+    assert.equal((await fetch(reviewRoute+"/reply",{method:"POST",headers:{Origin:"https://untrusted.example","Content-Type":"application/json"},body:'{}'})).status,403);
+    for(const method of ["GET","PUT","DELETE","PATCH"]) assert.equal((await fetch(reviewRoute+"/reply",{method,headers:{Origin:origin}})).status,404);
     assert.equal((await fetch(reviewRoute)).status, 200);
     assert.equal((await fetch(reviewRoute, {method:"POST",headers:{Origin:origin,"Content-Type":"application/json","X-CSRF-Token":"test-csrf"},body:'{"rating":5,"comment":"Fictional feedback.","publishAcknowledged":true}'})).status, 201); assert.ok(reviewSeen);
     assert.equal((await fetch(reviewRoute, {method:"POST",headers:{Origin:"https://untrusted.example","Content-Type":"application/json"},body:'{}'})).status, 403);
