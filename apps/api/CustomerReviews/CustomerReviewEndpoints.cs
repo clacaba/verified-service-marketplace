@@ -26,6 +26,19 @@ public static class CustomerReviewEndpoints
         return errors;
     }
 
+    private static async Task<IResult> GetReviewStateAsync(
+        Guid bookingId,
+        HttpContext http,
+        BookingReviewStateService service,
+        CancellationToken cancellationToken)
+    {
+        var userId = http.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userId)) return Results.Unauthorized();
+
+        var state = await service.GetAsync(bookingId, userId, cancellationToken);
+        return state is null ? Results.NotFound() : Results.Ok(state);
+    }
+
     public static void MapCustomerReviews(this WebApplication app)
     {
         var group = app.MapGroup("/api/v1/bookings/{bookingId:guid}/review").RequireAuthorization();
@@ -41,27 +54,7 @@ public static class CustomerReviewEndpoints
             }
             return await next(context);
         });
-        group.MapGet("", async (Guid bookingId, HttpContext http, MarketplaceDbContext db) =>
-        {
-            var user = http.User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-            var booking = await db.Bookings.AsNoTracking().SingleOrDefaultAsync(b => b.Id == bookingId && (b.CustomerId == user || db.OrganizationMemberships.Any(m => m.OrganizationId == b.OrganizationId && m.UserId == user && m.Active)));
-            if (booking == null) return Results.NotFound();
-            var review = await db.BookingReviews.AsNoTracking().Include(r => r.Reply).SingleOrDefaultAsync(r => r.BookingId == bookingId);
-            var member = await db.OrganizationMemberships.AnyAsync(m => m.OrganizationId == booking.OrganizationId && m.UserId == user && m.Active);
-            var verified = await db.Users.AnyAsync(u => u.Id == user && u.EmailConfirmed);
-            var reason = review != null ? "This booking already has a review. Reviews cannot be edited or replaced in this release."
-                : booking.CustomerId != user ? "Only this booking's customer can write its review."
-                : member ? "You cannot review a provider organization you belong to."
-                : booking.Status != "Completed" ? "Reviews become available after the booking is completed."
-                : !verified ? "Verify your email before submitting a review." : "";
-            var responder = await db.OrganizationMemberships.AnyAsync(m => m.OrganizationId == booking.OrganizationId && m.UserId == user && m.Active && (m.Role == "Owner" || m.Role == "Staff"));
-            var replyReason = !responder || booking.CustomerId == user ? "Only this provider's active Owners or Staff may reply; customers cannot reply to their own reviews."
-                : !verified ? "Verify your email before replying."
-                : review == null ? "A customer review is required before replying."
-                : review.Reply != null ? "This review already has a provider response. Replies cannot be edited or replaced."
-                : review.Status != "Published" || booking.Status != "Completed" ? "Only published reviews of completed bookings can receive replies." : "";
-            return Results.Ok(new { canReview = reason == "", reason, canReply = replyReason == "", replyReason, review = review == null ? null : Summary(review) });
-        });
+        group.MapGet("", GetReviewStateAsync);
         group.MapPost("", async (Guid bookingId, ReviewInput input, HttpContext http, MarketplaceDbContext db) =>
         {
             var user = http.User.FindFirstValue(ClaimTypes.NameIdentifier)!;
