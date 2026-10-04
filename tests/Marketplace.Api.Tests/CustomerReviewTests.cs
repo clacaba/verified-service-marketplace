@@ -117,7 +117,7 @@ public sealed partial class VerificationTests
         await using var factory = new Factory(); using var oc = factory.Browser(); using var rc = factory.Browser(); using var cc = factory.Browser();
         var owner = new Browser(oc); var reviewer = new Browser(rc); var customer = new Browser(cc);
         var (_, service, property, start) = await BookingSetup(factory, owner, reviewer, customer); var id = await CompleteReviewBooking(factory, owner, customer, service, property, start); var path = $"bookings/{id}/review";
-        foreach (var input in new[] { new CustomerReviewEndpoints.ReviewInput(0,"Valid fictional feedback.",true), new(6,"Valid fictional feedback.",true), new(3,null,true), new(3,"short",true), new(3,"          ",true), new(3,new string('a',2001),true), new(3,"Bad\0fictional feedback.",true), new(3,"Valid fictional feedback.",false) })
+        foreach (var input in new[] { new ReviewInput(0,"Valid fictional feedback.",true), new(6,"Valid fictional feedback.",true), new(3,null,true), new(3,"short",true), new(3,"          ",true), new(3,new string('a',2001),true), new(3,"Bad\0fictional feedback.",true), new(3,"Valid fictional feedback.",false) })
             Assert.Equal(HttpStatusCode.BadRequest, (await customer.Send(path, body: JsonContent.Create(input))).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await customer.Send(path, body: JsonContent.Create(new { rating = 3.5, comment = "Valid feedback.", publishAcknowledged = true }))).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await customer.Send(path, body: JsonContent.Create(new { rating = 5, comment = "Valid feedback.", publishAcknowledged = true, customerId = "forged" }))).StatusCode);

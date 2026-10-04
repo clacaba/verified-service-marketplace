@@ -30,6 +30,8 @@ builder.Services.AddOptions<EvidenceOptions>().Bind(builder.Configuration.GetSec
         && o.TradeCategoryIds.All(id => Guid.TryParse(id, out _)), "Invalid demo evidence policy.").ValidateOnStart();
 builder.Services.AddScoped<IEvidenceStore, S3EvidenceStore>();
 builder.Services.AddScoped<BookingReviewStateService>();
+builder.Services.AddScoped<ReviewSubmissionService>();
+builder.Services.AddScoped<ProviderReplySubmissionService>();
 builder.Services.AddScoped<IServiceImageStore, S3ServiceImageStore>();
 builder.Services.AddSingleton<ServiceImageProcessor>();
 if (builder.Configuration.GetValue<bool>("ServiceImages:CleanupEnabled")) builder.Services.AddHostedService<ServiceImageCleanupWorker>();
